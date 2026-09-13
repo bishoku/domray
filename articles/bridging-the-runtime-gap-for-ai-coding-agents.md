@@ -2,6 +2,8 @@
 
 *How DOMRay connects live Chrome runtime telemetry to Cursor, Claude Code, and AI agents via MCP — without headless browsers, token bloat, or security compromises.*
 
+![DOMRay — Browser-to-MCP Runtime Telemetry Bridge](../assets/domray_cover.png)
+
 ---
 
 ## The AI Coding Boom and the "Runtime Blindspot"

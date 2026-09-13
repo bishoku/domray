@@ -1,5 +1,7 @@
 # DOMRay ⚡
 
+![DOMRay — Browser-to-MCP Runtime Telemetry Bridge](assets/domray_cover.png)
+
 > **The Missing Runtime Telemetry Bridge for AI Coding Agents.**  
 > Give your AI assistants (**Cursor, Claude Code, Antigravity, Windsurf**) real-time vision into active browser sessions — including web pages behind **SSO, 2FA, VPNs, and dynamic client-side state** — via standard **Model Context Protocol (MCP)**.
 
