@@ -126,7 +126,7 @@ Because Chrome allows only one active debugger per tab, opening Chrome DevTools 
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/domray.git
+git clone https://github.com/bishoku/domray.git
 cd domray
 
 # Install dependencies for all workspaces

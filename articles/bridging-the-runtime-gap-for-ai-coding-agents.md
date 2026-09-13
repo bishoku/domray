@@ -214,27 +214,28 @@ Connecting browser telemetry to AI models raises legitimate security questions. 
 
 ## Getting Started
 
-DOMRay is built as a TypeScript monorepo with an npm-driven workflow.
+DOMRay is distributed as a self-contained, open-source monorepo. Everything is built and operated directly from source — no third-party npm packages to install globally and no closed Chrome Web Store submissions to wait for. You retain 100% ownership and local control over your browser telemetry.
 
-### 1. Installation
+### 1. Clone & Build
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/domray.git
+# Clone the open-source repository
+git clone https://github.com/bishoku/domray.git
 cd domray
 
-# Install dependencies and build both packages
+# Install dependencies and build both workspaces (MCP server & Chrome extension)
 npm install
-npm run build
+npm run clean && npm run build
 ```
-
-*(Note: Pre-packaged npm binaries and Chrome Web Store listings will be available soon.)*
 
 ### 2. Load the Chrome Extension
 
+Because DOMRay inspects your private, local browser sessions, running it directly as an unpacked extension provides full security transparency:
+
 1. Open Google Chrome and navigate to `chrome://extensions`.
 2. Enable **Developer mode** in the top right corner.
-3. Click **Load unpacked** and select the `extension/dist` folder from the repository.
+3. Click **Load unpacked** and select the `extension/dist` folder from the cloned repository.
+4. Pin the **DOMRay** icon in your Chrome toolbar for instant access.
 
 ### 3. Connect to Your AI Coding Assistant
 
@@ -288,7 +289,6 @@ By bridging the gap between your live, authenticated browser session and your AI
 
 ### Resources & Links
 
-* **GitHub Repository:** [github.com/your-org/domray](https://github.com/your-org/domray) *(Coming soon)*
-* **NPM Package:** `@domray/mcp-server` *(Coming soon)*
-* **Chrome Web Store:** DOMRay Extension *(Pending review)*
-* **Contributions & Feedback:** Open an issue or join our community discussions on GitHub!
+* **GitHub Repository:** [github.com/bishoku/domray](https://github.com/bishoku/domray) — Full source code, documentation, and architecture diagrams.
+* **Interactive Playground:** [`examples/checkout-app`](https://github.com/bishoku/domray/tree/main/examples/checkout-app) — A runnable React 18 application reproducing *"The Case of the Frozen Button"*.
+* **Contributions & Feedback:** Star the project on GitHub, file an issue, or open a discussion!
