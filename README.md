@@ -47,10 +47,12 @@
        │
        ▼
 [AI Coding Agent (Cursor / Claude Code / Antigravity / Windsurf)]
-  └── Standard MCP Tools (8 tools):
+  └── Standard MCP Tools (10 tools):
         ├── domray_get_active_session
         ├── domray_get_latest_error (Enriched with 15 causal breadcrumbs + warnings)
         ├── domray_get_flow_timeline (Unified chronological event replay)
+        ├── domray_get_test_blueprint (🎬 Runnable Playwright / Cypress E2E spec generator)
+        ├── domray_get_mock_handlers (🌐 Production-ready MSW v2 mock request handlers)
         ├── domray_get_console_logs (Browser console stream: log/info/warn/error)
         ├── domray_get_storage_state (localStorage, sessionStorage, cookies)
         ├── domray_get_network_timeline (Network traffic & failed API calls)
@@ -117,6 +119,21 @@ Because Chrome allows only one active debugger per tab, opening Chrome DevTools 
 * Detects `replaced_with_devtools` and marks tracing as paused.
 * Shows an **`F12`** badge on the extension icon and displays an alert banner in the popup & side panel.
 * Offers a single-click **"🔄 Re-attach Debugger"** button once DevTools is closed.
+
+### 11. 🎬 Causal Flow to Test Blueprint (`domray_get_test_blueprint`)
+Synthesizes resilient, runnable **Playwright** or **Cypress** test specs directly from recorded user interactions and correlated network responses:
+* Uses semantic, non-brittle locators prioritized by official Playwright best practices (`page.getByRole`, `page.getByTestId`, `page.getByPlaceholder`, `page.locator`).
+* Automatically pairs user actions with subsequent API calls: adds `page.waitForResponse(...)` and status assertions.
+* Guarantees zero-hallucination E2E test scripts for AI coding assistants.
+
+### 12. 🌐 Auto MSW Mock Handlers Generator (`domray_get_mock_handlers`)
+Generates production-ready **Mock Service Worker (MSW v2)** or fetch-mock request handlers from recorded network transactions:
+* Intercepts HTTP 4xx/5xx error responses and JSON API responses with edge-redacted payloads.
+* Generates ready-to-use `http.get`, `http.post`, and `HttpResponse.json(...)` handler blocks for Vitest, Jest, or Playwright network mocking.
+
+### 13. 📋 1-Click AI Context Capsule & Visual Element Inspector (🎯)
+* **1-Click AI Context Capsule (`📋`):** A single click in the Side Panel or Popup copies a complete, structured Markdown diagnostic snapshot (URL, error stack trace, recent breadcrumbs, failed network calls, and component state) directly to the system clipboard—perfect for pasting into web-based **ChatGPT**, **Claude.ai**, or issue trackers.
+* **Target-Driven Element Inspector (`🎯`):** Click the crosshair icon to enter visual inspection mode. Hover over any element on the live web page to view its glowing boundary box, tag, and React component name. Click to freeze and display its selector, Playwright locator, and React Fiber state directly in the Side Panel!
 
 ---
 
@@ -248,7 +265,8 @@ domray/
 │           ├── network-tools.ts          # domray_get_network_timeline
 │           ├── dom-tools.ts              # domray_get_scoped_dom
 │           ├── dom-sanitizer.ts          # Semantic DOM Sanitizer & Token Pruner
-│           └── framework-tools.ts        # domray_get_component_state (Fiber/Vue)
+│           ├── framework-tools.ts        # domray_get_component_state (Fiber/Vue)
+│           └── test-tools.ts             # domray_get_test_blueprint & domray_get_mock_handlers
 └── extension/                            # Chrome Extension (Manifest V3)
     ├── manifest.json                     # MV3 manifest with debugger, storage, sidePanel, content_scripts
     ├── package.json
@@ -350,5 +368,9 @@ npx @modelcontextprotocol/inspector node mcp-server/dist/index.js
 - [x] **Framework State Inspector** (React Fiber props/state & Vue 3 setupState)
 - [x] **DevTools F12 Auto-Heal** (Detection and graceful pause/re-attach)
 - [x] **Live Telemetry & AI Audit Side Panel** (`chrome.sidePanel` real-time transparency dashboard)
+- [x] **1-Click AI Context Capsule** (`📋` Markdown prompt export for web ChatGPT & Claude)
+- [x] **Target-Driven Visual Element Inspector** (`🎯` live hover highlighter & React Fiber inspection)
+- [x] **Causal Flow to E2E Spec Blueprint** (`domray_get_test_blueprint` for Playwright & Cypress)
+- [x] **Auto MSW Mock Handlers** (`domray_get_mock_handlers` for unit and integration testing)
 - [ ] **Accessibility Tree Mode** (Direct CDP `Accessibility.getFullAXTree` export option)
 - [ ] **Native Messaging Transport** (Alternative loopback transport without WebSockets)

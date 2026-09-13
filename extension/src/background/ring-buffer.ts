@@ -31,6 +31,12 @@ export interface BreadcrumbEntry {
   type: "click" | "input" | "submit" | "navigation" | "console" | "custom";
   description: string;
   selector?: string;
+  role?: string;
+  accessibleName?: string;
+  tagName?: string;
+  testId?: string;
+  inputType?: string;
+  inputValue?: string;
 }
 
 export interface ConsoleEntry {
@@ -52,6 +58,8 @@ export interface NetworkEntry {
   failureReason?: string;
   requestHeaders: Record<string, string>;
   responseHeaders?: Record<string, string>;
+  requestBody?: string;
+  responseBody?: string;
   durationMs?: number;
   /** Tracks when request was sent (for duration calculation) */
   _sentAt?: number;

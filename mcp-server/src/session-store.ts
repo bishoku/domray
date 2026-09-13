@@ -21,6 +21,12 @@ export interface BreadcrumbEntry {
   description: string;
   selector?: string;
   value?: string;
+  role?: string;
+  accessibleName?: string;
+  tagName?: string;
+  testId?: string;
+  inputType?: string;
+  inputValue?: string;
 }
 
 export interface ConsoleEntry {
@@ -43,6 +49,8 @@ export interface NetworkEntry {
   failureReason?: string;
   requestHeaders: Record<string, string>;
   responseHeaders?: Record<string, string>;
+  requestBody?: string;
+  responseBody?: string;
   /** Duration in ms; undefined if no response */
   durationMs?: number;
 }

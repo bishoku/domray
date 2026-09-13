@@ -99,13 +99,16 @@ chrome.action.onClicked.addListener((tab) => {
 
 // Messages from popup, sidepanel, and content scripts
 chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
+  if (typeof message !== "object" || message === null) {
+    sendResponse({ ok: false });
+    return true;
+  }
+
+  const msg = message as { type?: string; payload?: unknown };
+
   // 1. Content Script User Action Breadcrumb
-  if (
-    typeof message === "object" &&
-    message !== null &&
-    (message as { type?: string }).type === "user-action-breadcrumb"
-  ) {
-    const b = (message as { payload: BreadcrumbEntry }).payload;
+  if (msg.type === "user-action-breadcrumb") {
+    const b = (msg as { payload: BreadcrumbEntry }).payload;
     if (sender.tab?.id === getActiveTabId()) {
       breadcrumbBuffer.push(b);
       void persistBuffers();
@@ -115,7 +118,23 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
     return true;
   }
 
-  // 2. Popup / Sidepanel command messages
+  // 2. Element inspected event from content script
+  if (msg.type === "domray-element-inspected") {
+    void chrome.storage.session.set({ domray_inspected_element: msg.payload });
+    // Broadcast to open sidepanels
+    chrome.runtime.sendMessage(msg).catch(() => {});
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  // 3. Inspect mode changed event
+  if (msg.type === "domray-inspect-mode-changed") {
+    chrome.runtime.sendMessage(msg).catch(() => {});
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  // 4. Popup / Sidepanel command messages
   void handlePopupMessage(message as PopupMessage, sendResponse);
   return true; // Keep message channel open for async response
 });
@@ -169,7 +188,9 @@ type PopupMessage =
   | { type: "take-snapshot" }
   | { type: "open-sidepanel" }
   | { type: "clear-buffers" }
-  | { type: "inspect-component"; selector: string };
+  | { type: "inspect-component"; selector: string }
+  | { type: "toggle-inspect" }
+  | { type: "get-capsule-data" };
 
 async function handlePopupMessage(
   msg: PopupMessage,
@@ -339,6 +360,70 @@ async function handlePopupMessage(
       } catch (err) {
         sendResponse({ ok: false, error: String(err) });
       }
+      break;
+    }
+
+    case "toggle-inspect": {
+      const tabId = getActiveTabId();
+      if (!tabId) {
+        sendResponse({ ok: false, error: "No active tab attached" });
+        break;
+      }
+      try {
+        const res = (await chrome.tabs.sendMessage(tabId, { type: "domray-toggle-inspect" })) as {
+          active?: boolean;
+        };
+        sendResponse({ ok: true, active: res?.active });
+      } catch (err) {
+        sendResponse({ ok: false, error: "Cannot communicate with tab content script. Ensure tab is loaded." });
+      }
+      break;
+    }
+
+    case "get-capsule-data": {
+      const activeTabId = getActiveTabId();
+      let tabTitle = "(unknown)";
+      let tabUrl = "(unknown)";
+
+      if (activeTabId) {
+        try {
+          const tab = await chrome.tabs.get(activeTabId);
+          tabTitle = tab.title || tabTitle;
+          tabUrl = tab.url || tabUrl;
+        } catch {
+          // Tab may be closing
+        }
+      }
+
+      const errors = errorBuffer.getAll();
+      const latestError = errors.length > 0 ? errors[errors.length - 1] : null;
+      const breadcrumbs = breadcrumbBuffer.getAll().slice(-15);
+      const failedNetwork = networkBuffer
+        .getAll()
+        .filter((n) => n.failed || (n.status !== undefined && n.status >= 400))
+        .slice(-5);
+      const recentConsole = consoleBuffer
+        .getAll()
+        .filter((c) => c.type === "error" || c.type === "warn")
+        .slice(-5);
+
+      const sessionStore = await chrome.storage.session.get("domray_inspected_element");
+      const inspectedElement = sessionStore["domray_inspected_element"] || null;
+
+      sendResponse({
+        ok: true,
+        session: {
+          url: tabUrl,
+          title: tabTitle,
+          tabId: activeTabId,
+          timestamp: Date.now(),
+        },
+        latestError,
+        breadcrumbs,
+        failedNetwork,
+        recentConsole,
+        inspectedElement,
+      });
       break;
     }
   }

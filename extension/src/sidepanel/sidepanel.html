@@ -17,6 +17,8 @@
       </div>
     </div>
     <div class="header__actions">
+      <button id="inspect-btn" class="icon-btn" title="Inspect Element on Page">🎯</button>
+      <button id="capsule-btn" class="icon-btn" title="Copy 1-Click AI Context Capsule (Markdown)">📋</button>
       <button id="clear-btn" class="icon-btn" title="Clear Buffers">🧹</button>
       <button id="snapshot-btn" class="icon-btn" title="Take DOM Snapshot">📸</button>
       <button id="attach-btn" class="btn btn--sm btn--primary">Attach</button>
@@ -39,6 +41,32 @@
   <div class="session-bar">
     <span class="session-bar__label">Active Tab:</span>
     <span id="tab-title" class="session-bar__title truncate">Loading…</span>
+  </div>
+
+  <!-- Collapsible Active Element Inspector Card -->
+  <div id="inspector-card" class="inspector-card hidden">
+    <div class="inspector-card__header">
+      <div class="inspector-card__title-group">
+        <span class="inspector-card__badge">🎯 INSPECTED</span>
+        <span id="inspect-comp-name" class="inspector-card__comp-name">&lt;Component&gt;</span>
+      </div>
+      <button id="inspect-close-btn" class="icon-btn-xs" title="Close">✕</button>
+    </div>
+    <div class="inspector-card__body">
+      <div class="inspector-field">
+        <span class="inspector-field__label">Selector:</span>
+        <code id="inspect-selector" class="inspector-field__code">button#apply-coupon</code>
+      </div>
+      <div class="inspector-field">
+        <span class="inspector-field__label">Playwright:</span>
+        <code id="inspect-locator" class="inspector-field__code">page.getByRole('button', { name: 'Apply' })</code>
+      </div>
+      <div class="inspector-card__actions">
+        <button id="btn-copy-locator" class="btn btn--xs btn--secondary">⚡ Copy Locator</button>
+        <button id="btn-copy-comp-capsule" class="btn btn--xs btn--secondary">📋 Copy Component</button>
+        <button id="btn-reinspect" class="btn btn--xs btn--primary">🎯 Re-inspect</button>
+      </div>
+    </div>
   </div>
 
   <!-- DevTools / Detach Conflict Warning Banner -->
@@ -162,6 +190,10 @@
     </section>
 
   </main>
+
+  <div id="domray-toast" class="toast hidden">
+    <span id="toast-message">✅ Context Capsule Copied!</span>
+  </div>
 
   <script src="sidepanel.js"></script>
 </body>

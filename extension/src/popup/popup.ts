@@ -37,7 +37,10 @@ const connectBtn = document.getElementById("connect-btn")!;
 const tracingStatusPill = document.getElementById("tracing-status-pill")!;
 const sessionTitle = document.getElementById("session-title")!;
 const tracingToggleBtn = document.getElementById("tracing-toggle-btn")!;
+const capsuleBtn = document.getElementById("capsule-btn")!;
 const snapshotBtn = document.getElementById("snapshot-btn")!;
+const toastEl = document.getElementById("domray-toast")!;
+const toastMessageEl = document.getElementById("toast-message")!;
 
 // Bottom actions
 const bottomActions = document.getElementById("bottom-actions")!;
@@ -179,6 +182,69 @@ bannerReattachBtn.addEventListener("click", async () => {
   }
   await init();
   bannerReattachBtn.removeAttribute("disabled");
+});
+
+let toastTimer: number | null = null;
+function showToast(msg: string): void {
+  if (toastTimer) clearTimeout(toastTimer);
+  toastMessageEl.textContent = msg;
+  toastEl.classList.remove("hidden");
+  toastTimer = window.setTimeout(() => {
+    toastEl.classList.add("hidden");
+  }, 2200);
+}
+
+// 1-Click AI Context Capsule
+capsuleBtn.addEventListener("click", async () => {
+  try {
+    const res = (await sendMessage<{
+      ok: boolean;
+      session?: { url: string; title: string };
+      latestError?: { message: string; stack?: string };
+      breadcrumbs?: Array<{ type: string; description: string }>;
+      failedNetwork?: Array<{ method: string; url: string; status?: number; statusText?: string }>;
+    }>({ type: "get-capsule-data" }));
+
+    if (!res || !res.ok) {
+      showToast("❌ Could not get data");
+      return;
+    }
+
+    const lines: string[] = [
+      `# 🐞 DOMRay Telemetry Context Capsule`,
+      `**Session:** ${res.session?.title || "Active Page"} (\`${res.session?.url || "unknown"}\`)`,
+      `**Timestamp:** ${new Date().toISOString()}`,
+      ``,
+    ];
+
+    if (res.latestError) {
+      lines.push(`## 🔴 Latest Runtime Exception`);
+      lines.push(`**Error:** \`${res.latestError.message}\``);
+      if (res.latestError.stack) lines.push(`\`\`\`\n${res.latestError.stack.slice(0, 1000)}\n\`\`\``);
+      lines.push(``);
+    }
+
+    if (res.breadcrumbs && res.breadcrumbs.length > 0) {
+      lines.push(`## 👣 Recent User Actions (Breadcrumbs)`);
+      res.breadcrumbs.forEach((b, idx) => {
+        lines.push(`${idx + 1}. [${b.type}] ${b.description}`);
+      });
+      lines.push(``);
+    }
+
+    if (res.failedNetwork && res.failedNetwork.length > 0) {
+      lines.push(`## 🌐 Failed Network Calls`);
+      res.failedNetwork.forEach((n) => {
+        lines.push(`- \`${n.method}\` ${n.url} -> **HTTP ${n.status || "ERR"}** ${n.statusText || ""}`);
+      });
+      lines.push(``);
+    }
+
+    await navigator.clipboard.writeText(lines.join("\n"));
+    showToast("✅ AI Capsule Copied!");
+  } catch {
+    showToast("❌ Failed to copy");
+  }
 });
 
 // Snapshot Trigger

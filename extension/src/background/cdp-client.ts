@@ -12,7 +12,7 @@
  *   Future: CDP Runtime.evaluate to serialize React props/state from Fiber nodes.
  */
 
-import { redactHeaders, redactUrl } from "./redaction.js";
+import { redactHeaders, redactUrl, redactBody } from "./redaction.js";
 import {
   errorBuffer,
   networkBuffer,
@@ -608,7 +608,7 @@ export function handleCdpEvent(
       onLoadingFailed(params as NetworkLoadingFailedParams);
       break;
     case "Network.loadingFinished":
-      onLoadingFinished(params as NetworkLoadingFinishedParams);
+      void onLoadingFinished(params as NetworkLoadingFinishedParams);
       break;
   }
 }
@@ -754,12 +754,38 @@ interface NetworkLoadingFinishedParams {
   requestId: string;
 }
 
-function onLoadingFinished(params: NetworkLoadingFinishedParams): void {
+async function onLoadingFinished(params: NetworkLoadingFinishedParams): Promise<void> {
   const entry = pendingRequests.get(params.requestId);
   if (!entry) return;
 
   // Only persist to network buffer if it had a response already recorded
   if (entry.status !== undefined) {
+    if (activeTabId !== null) {
+      const isError = entry.status >= 400;
+      const isJson =
+        entry.responseHeaders &&
+        Object.entries(entry.responseHeaders).some(
+          ([k, v]) => k.toLowerCase() === "content-type" && v.toLowerCase().includes("json")
+        );
+
+      if (isError || isJson) {
+        try {
+          const bodyRes = (await chrome.debugger.sendCommand(
+            { tabId: activeTabId },
+            "Network.getResponseBody",
+            { requestId: params.requestId }
+          )) as { body?: string; base64Encoded?: boolean };
+
+          if (bodyRes && bodyRes.body) {
+            const raw = bodyRes.base64Encoded ? atob(bodyRes.body) : bodyRes.body;
+            entry.responseBody = redactBody(raw.slice(0, 4000));
+          }
+        } catch {
+          // Body not available or evicted; ignore safely
+        }
+      }
+    }
+
     networkBuffer.push(entry);
     void persistBuffers();
   }

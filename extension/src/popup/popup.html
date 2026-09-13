@@ -82,11 +82,18 @@
         <button id="tracing-toggle-btn" class="btn btn--primary btn--sm" style="flex: 1;">
           ▶ Start Tracing
         </button>
+        <button id="capsule-btn" class="btn btn--secondary btn--sm" title="Copy 1-Click AI Context Capsule (Markdown)">
+          📋 Capsule
+        </button>
         <button id="snapshot-btn" class="btn btn--secondary btn--sm" title="Capture DOM snapshot">
-          📸 Snapshot
+          📸
         </button>
       </div>
     </div>
+  </div>
+
+  <div id="domray-toast" class="toast hidden" style="position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); background: #0f172a; color: #22d3ee; border: 1px solid #06b6d4; padding: 6px 12px; border-radius: 12px; font-size: 10.5px; font-weight: 600; white-space: nowrap; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.6);">
+    <span id="toast-message"></span>
   </div>
 
   <!-- Bottom Actions -->

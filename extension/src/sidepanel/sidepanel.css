@@ -593,3 +593,133 @@ body {
   from { opacity: 0; transform: translateY(-3px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Active Inspector Button */
+#inspect-btn.active {
+  background: rgba(6, 182, 212, 0.25);
+  color: #22d3ee;
+  border: 1px solid #06b6d4;
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+  animation: pulseInspect 1.5s infinite;
+}
+
+@keyframes pulseInspect {
+  0% { box-shadow: 0 0 4px rgba(6, 182, 212, 0.3); }
+  50% { box-shadow: 0 0 10px rgba(6, 182, 212, 0.7); }
+  100% { box-shadow: 0 0 4px rgba(6, 182, 212, 0.3); }
+}
+
+/* Inspector Card */
+.inspector-card {
+  margin: 8px 14px;
+  background: #1e2030;
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.inspector-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: rgba(6, 182, 212, 0.1);
+  border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+}
+
+.inspector-card__title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inspector-card__badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: #22d3ee;
+  letter-spacing: 0.5px;
+}
+
+.inspector-card__comp-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: #f7768e;
+}
+
+.icon-btn-xs {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.icon-btn-xs:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.inspector-card__body {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inspector-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inspector-field__label {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.inspector-field__code {
+  background: #16161e;
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #7aa2f7;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.inspector-card__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0f172a;
+  color: #22d3ee;
+  border: 1px solid #06b6d4;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), 0 0 10px rgba(6, 182, 212, 0.4);
+  z-index: 10000;
+  animation: toastPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes toastPop {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
