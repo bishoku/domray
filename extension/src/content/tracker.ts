@@ -107,6 +107,30 @@ function getAccessibleName(el: HTMLElement): string | undefined {
   const ariaLabel = el.getAttribute("aria-label");
   if (ariaLabel && ariaLabel.trim()) return ariaLabel.trim().slice(0, 50);
 
+  const ariaLabelledBy = el.getAttribute("aria-labelledby");
+  if (ariaLabelledBy) {
+    const labelledEl = document.getElementById(ariaLabelledBy);
+    if (labelledEl?.textContent?.trim()) {
+      return labelledEl.textContent.trim().replace(/\s+/g, " ").slice(0, 50);
+    }
+  }
+
+  if (el.id) {
+    try {
+      const labelEl = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+      if (labelEl?.textContent?.trim()) {
+        return labelEl.textContent.trim().replace(/\s+/g, " ").slice(0, 50);
+      }
+    } catch {
+      // ignore selector escaping error
+    }
+  }
+
+  const parentLabel = el.closest("label");
+  if (parentLabel?.textContent?.trim()) {
+    return parentLabel.textContent.trim().replace(/\s+/g, " ").slice(0, 50);
+  }
+
   const title = el.getAttribute("title");
   if (title && title.trim()) return title.trim().slice(0, 50);
 

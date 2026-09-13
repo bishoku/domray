@@ -33,6 +33,7 @@
     "dev:server": "npm run dev --workspace=mcp-server",
     "dev:extension": "npm run dev --workspace=extension",
     "dev:example": "npm run dev --workspace=@domray/example-checkout",
+    "test:example:e2e": "npm run test:e2e --workspace=@domray/example-checkout",
     "clean": "rm -rf mcp-server/dist extension/dist examples/checkout-app/dist"
   },
   "devDependencies": {
