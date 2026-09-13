@@ -17,7 +17,10 @@ import {
 } from "./cdp-client.js";
 import {
   restoreBuffers,
+  errorBuffer,
+  networkBuffer,
   breadcrumbBuffer,
+  consoleBuffer,
   persistBuffers,
   clearAllBuffers,
   type BreadcrumbEntry,
@@ -395,15 +398,15 @@ async function handlePopupMessage(
         }
       }
 
-      const errors = errorBuffer.getAll();
+      const errors = errorBuffer.toArray();
       const latestError = errors.length > 0 ? errors[errors.length - 1] : null;
-      const breadcrumbs = breadcrumbBuffer.getAll().slice(-15);
+      const breadcrumbs = breadcrumbBuffer.toArray().slice(-15);
       const failedNetwork = networkBuffer
-        .getAll()
+        .toArray()
         .filter((n) => n.failed || (n.status !== undefined && n.status >= 400))
         .slice(-5);
       const recentConsole = consoleBuffer
-        .getAll()
+        .toArray()
         .filter((c) => c.type === "error" || c.type === "warn")
         .slice(-5);
 

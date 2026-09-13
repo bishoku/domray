@@ -1,6 +1,7 @@
 /**
  * popup.ts — DOMRay extension popup controller.
  */
+export {};
 
 type WsStatus = "disconnected" | "connecting" | "connected" | "error";
 

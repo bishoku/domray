@@ -2,8 +2,8 @@
  * sidepanel.ts — DOMRay Live Telemetry & AI Audit Side Panel Controller.
  *
  * Provides real-time reactive monitoring of everything captured by the extension
- * and served to AI coding agents via MCP.
  */
+export {};
 
 interface ErrorEntry {
   timestamp: number;
