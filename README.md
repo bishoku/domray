@@ -1,195 +1,191 @@
-# DOMRay
+# DOMRay ⚡
 
-> **Browser-to-MCP Runtime Telemetry & AI Audit Engine**  
-> Capture runtime errors, network traffic, DOM snapshots, and framework state (React Fiber / Vue 3) from any web app — including those behind SSO, 2FA, VPN, and strict CSP — and deliver them securely to AI coding agents (**Cursor, Claude Code, Antigravity, Windsurf**) via standard **Model Context Protocol (MCP)**.  
-> Includes a **Live Telemetry & AI Audit Side Panel** for 100% transparent, zero-trust developer monitoring.
+> **The Missing Runtime Telemetry Bridge for AI Coding Agents.**  
+> Give your AI assistants (**Cursor, Claude Code, Antigravity, Windsurf**) real-time vision into active browser sessions — including web pages behind **SSO, 2FA, VPNs, and dynamic client-side state** — via standard **Model Context Protocol (MCP)**.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Chrome Extension MV3](https://img.shields.io/badge/Chrome_Extension-Manifest_V3-green?logo=googlechrome)](https://developer.chrome.com/docs/extensions/mv3/)
+[![MCP Standard](https://img.shields.io/badge/Protocol-Model_Context_Protocol-purple)](https://modelcontextprotocol.io/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 ---
 
-## Architecture Overview
+## 🛑 The Problem: The Runtime Blindspot of AI Coding
+
+AI coding agents have revolutionized software development. Tools like Cursor, Claude Code, Windsurf, and Copilot understand your static codebase, git history, syntax trees, and type definitions with astonishing precision.
+
+**However, the moment your application runs in a browser, your AI coding agent becomes completely blind.**
+
+```
+┌────────────────────────────────────────────────────────┐
+│                   THE RUNTIME GAP                      │
+│                                                        │
+│  Static World (AI has 100% Context):                   │
+│  ✓ Source Code & Git History                          │
+│  ✓ Abstract Syntax Trees & Types                       │
+│  ✓ Project Files & Dependencies                        │
+│                                                        │
+│  =================== BLIND SPOT =====================  │
+│                                                        │
+│  Runtime World (AI has 0% Context):                    │
+│  ✗ Pages behind SSO, 2FA, VPNs, or Staging Auth        │
+│  ✗ Real-time React / Vue internal component state      │
+│  ✗ Causal user interaction sequences (Breadcrumbs)     │
+│  ✗ Failed API responses and HTTP 4xx/5xx payloads      │
+│  ✗ Console warnings and client storage (session/local) │
+└────────────────────────────────────────────────────────┘
+```
+
+### Where Current Practices Fail:
+
+1. **The Authentication & Security Wall (SSO / 2FA / Staging):**  
+   Autonomous headless agents (e.g. Puppeteer/Playwright scripts) cannot log into internal staging environments, corporate VPNs, or apps protected by Okta/Google 2FA without complex credential passing or unsafe cookie sharing.
+2. **The "Manual Copy-Paste" Tax:**  
+   When a bug occurs, developers waste time opening DevTools, copying messy stack traces, exporting HAR network logs, taking screenshots, and hand-crafting prompts for their AI. By the time the context is assembled, critical temporal details are lost.
+3. **Silent State Bugs (No Errors Thrown):**  
+   Many of the hardest frontend bugs don't throw an uncaught exception (e.g. *"The submit button is permanently stuck on 'Applying...', no error is in the console, and the cart total didn't change"*). Static code analysis cannot tell the AI whether `isSubmitting` in React Fiber or a Vue `ref` is currently stuck at `true`.
+4. **The Automated Testing Disconnect:**  
+   After discovering and manually reproducing a bug in the browser, translating that discovery into resilient, production-ready Playwright/Cypress E2E specs or MSW API mock handlers requires another round of manual, error-prone boilerplate coding.
+
+---
+
+## 💡 The Solution: DOMRay
+
+**DOMRay bridges the gap between your active browser runtime and your AI coding agent.**
+
+Instead of trying to automate a separate, detached browser instance, DOMRay connects directly to the **living, authenticated browser tab you are already using as a developer**.
+
+Using the **Chrome DevTools Protocol (CDP)** and the open **Model Context Protocol (MCP)**, DOMRay securely streams structured runtime telemetry into your AI agent's tool context while providing you with 100% visibility through a native Chrome Side Panel.
+
+```
++-----------------------------------------------------------------------------------------+
+|                                    DOMRay WORKFLOW                                      |
+|                                                                                         |
+| 1. DEVELOPER INTERACTS             2. DOMRAY CAPTURES             3. AI AGENT REPAIRS   |
+|                                                                                         |
+|   ┌────────────────────────┐         ┌───────────────────┐         ┌─────────────────┐  |
+|   │ Authenticated Browser  │         │ DOMRay Extension  │         │ AI Agent (MCP)  │  |
+|   │ (SSO / 2FA Active)     │ ──────> │ - User Actions    │ ──────> │ Cursor / Claude │  |
+|   │ User clicks "Apply",   │         │ - Failed Network  │         │ Queries state,  │  |
+|   │ button freezes!        │         │ - Fiber State     │         │ generates fix & │  |
+|   └────────────────────────┘         │ - Edge Redaction  │         │ E2E test specs! │  |
+|                                      └───────────────────┘         └─────────────────┘  |
++-----------------------------------------------------------------------------------------+
+```
+
+### What DOMRay Gives You & Your AI:
+* 🔍 **Zero-Friction Context:** Your AI can inspect runtime exceptions, network request histories, and client storage on demand.
+* 🖱️ **Causal Flow Reconstruction:** Replays the exact sequence of clicks, form entries, and SPA navigations that triggered an issue.
+* ⚛️ **Framework State X-Ray:** Traverses React 18/19 Fiber trees (hooks unrolled into `useState`, `useReducer`, props) and Vue 3 reactive `ref()` / `computed()` components.
+* 🎬 **Instant E2E Test Blueprints (`domray_get_test_blueprint`):** Converts recorded user actions and network events directly into runnable, resilient **Playwright** or **Cypress** test specs.
+* 🌐 **Auto MSW Mock Handlers (`domray_get_mock_handlers`):** Automatically synthesizes Mock Service Worker v2 handlers from real failed HTTP 4xx/5xx network transactions.
+* 📋 **1-Click AI Context Capsule:** Copies an edge-redacted, Markdown-formatted diagnostic report to your clipboard for instant pasting into web ChatGPT, Claude, or GitHub Issues.
+
+---
+
+## 🏛️ Architecture & Technology Stack
+
+DOMRay is built as a lightweight, local-first monorepo designed for performance and zero cognitive overhead.
 
 ```
 [Target Web Page (SSO / 2FA / Strict CSP)]
        │
        ├── User Interaction Tracker (Content Script)
        │     ├── Captures: clicks, inputs, submits, SPA route changes
-       │     └── Edge redaction: passwords, tokens, data-private masked
+       │     └── W3C Accessible Name resolution (label[for], aria-labelledby)
        │
        │ (Chrome DevTools Protocol - CDP via chrome.debugger)
        ▼
 [Chrome Extension (Manifest V3)]
   ├── Service Worker
-  │     ├── CDP Client (Runtime.enable, Network.enable, consoleAPICalled, Fiber/Vue state)
-  │     ├── In-Memory Ring Buffers (Errors, Network, Breadcrumbs, Console Logs)
+  │     ├── CDP Client (Runtime.enable, Network.enable, consoleAPICalled)
+  │     ├── In-Memory Ring Buffers (Errors, Network, Breadcrumbs, Console)
   │     ├── Edge Redaction Engine (Masks Authorization, Cookie, Passwords BEFORE dispatch)
-  │     ├── State Lifecycle Reset (Auto-clears on detach/attach; 1-click manual wipe)
-  │     └── WebSocket Client (Loopback with 15s SW keepalive heartbeat)
+  │     └── WebSocket Client (Loopback with keepalive heartbeat)
   ├── Popup UI (1-Click Auto-Pairing, Re-attach, Quick Actions)
   └── 🖥️ Live Telemetry & AI Audit Side Panel (chrome.sidePanel)
-         ├── 🤖 Live AI Audit Feed (Watches LLM tool queries in real time)
+         ├── 🤖 Live AI Audit Feed (Watches agent tool queries in real time)
          ├── 🔴 Exceptions, Stack Traces & Live User Breadcrumbs
-         ├── 🌐 Network Waterfall & "What AI Sees" Redaction Inspector
-         ├── 🧹 1-Click Buffer & State Reset Control
-         └── 🧩 Token-Pruned DOM & React/Vue State Explorer
+         ├── 🎯 Visual Element Inspector (Hover highlighter & component name)
+         └── 🧹 1-Click State & Buffer Reset Control
        │
-       │ Localhost Loopback (http://127.0.0.1:9123 & ws://127.0.0.1:9123)
-       │ Auth: Origin Validation + Ephemeral Session Token + Auto-Pairing
+       │ Localhost Loopback (ws://127.0.0.1:9123)
+       │ Auth: Origin Validation + Ephemeral Cryptographic Token
        ▼
 [Local DOMRay MCP Server (Node.js/TypeScript)]
   ├── Hybrid HTTP + WebSocket Bridge
-  │     ├── POST/GET /pair (Zero-config 1-click handshake & origin registration)
-  │     ├── GET /health (Server status & connection telemetry)
-  │     └── WS Inbound/Outbound (Telemetry streams + Bidirectional DOM/State/Storage queries)
-  ├── Session Store (Errors, Network, Breadcrumbs, Console Logs + callback registries)
-  ├── Semantic DOM Sanitizer & Token Pruner (-80% LLM token consumption)
-  ├── Security Manager (Crypto token gen, timing-safe compare, allowed origins)
-  └── MCP stdio Transport (JSON-RPC 2.0 over process.stdin / process.stdout)
+  │     ├── POST /pair (Zero-config 1-click handshake & origin registration)
+  │     └── WS Inbound/Outbound (Telemetry streams + Bidirectional DOM/State queries)
+  ├── Session Store (Ring buffers, active tab tracking, callback registry)
+  ├── Semantic DOM Sanitizer & Token Pruner (-85% LLM token consumption)
+  └── MCP stdio Transport (JSON-RPC 2.0 over stdin/stdout)
        │
        ▼
 [AI Coding Agent (Cursor / Claude Code / Antigravity / Windsurf)]
-  └── Standard MCP Tools (10 tools):
-        ├── domray_get_active_session
-        ├── domray_get_latest_error (Enriched with 15 causal breadcrumbs + warnings)
-        ├── domray_get_flow_timeline (Unified chronological event replay)
-        ├── domray_get_test_blueprint (🎬 Runnable Playwright / Cypress E2E spec generator)
-        ├── domray_get_mock_handlers (🌐 Production-ready MSW v2 mock request handlers)
-        ├── domray_get_console_logs (Browser console stream: log/info/warn/error)
-        ├── domray_get_storage_state (localStorage, sessionStorage, cookies)
-        ├── domray_get_network_timeline (Network traffic & failed API calls)
-        ├── domray_get_scoped_dom (Token-pruned semantic HTML)
-        └── domray_get_component_state (React Fiber / Vue 3 reactive state)
+  └── Standard MCP Tools (10 specialized tools)
 ```
 
----
-
-## Key Features
-
-### 1. 🤖 Zero-Friction 1-Click Auto-Pairing & Instant Tracing
-No manual token copy-pasting required. The MCP server runs a zero-friction loopback handshake endpoint on `http://127.0.0.1:9123/pair` (supporting both `POST` with `X-DOMRay-Extension-Id` and `GET`). Clicking **"⚡ Auto-Connect"** in the extension popup automatically pairs the extension ID, registers it into `~/.domray/allowed_origins.json`, fetches the ephemeral session token, establishes the WebSocket connection, and **instantly begins tracing the active tab in a single click**. The UI features a crystal-clear dual-status system that independently displays the **MCP Server Bridge** status and **Tab Tracing** state.
-
-### 2. 🖱️ Smart User Action Tracking & Causal Breadcrumbs
-Stack traces show *where* a bug crashed; breadcrumbs show *how the user got there*. A lightweight content script tracks user journey events in real time:
-* **Interactive Clicks:** Buttons, links, inputs, and elements with `role="button"`, generating clean semantic selectors (e.g. `button#checkout-btn "Proceed to Checkout"`).
-* **Form Inputs & Changes:** Debounced typing preview with mandatory edge-redaction for passwords, tokens, credit cards, or fields marked `data-private`.
-* **Form Submissions:** Form targets, actions, and validation states.
-* **SPA Client-Side Navigation:** Automatic tracking of `history.pushState`, `replaceState`, `popstate`, and `hashchange`.
-
-### 3. ⏱️ Unified Chronological Flow Timeline (`domray_get_flow_timeline`)
-Essential for diagnosing **silent or logic bugs** where no uncaught JavaScript error is thrown (e.g., "User clicked apply coupon, button disabled, but total didn't change"). Interleaves user interactions, API network calls, console logs, and errors into a single chronological replay.
-
-### 4. 💬 Live Browser Console Stream (`domray_get_console_logs`)
-Captures all `console.log`, `console.info`, `console.warn`, and `console.error` calls via CDP `Runtime.consoleAPICalled`. AI agents can query and filter console output by severity or search keyword.
-
-### 5. 🗄️ Client Storage State Inspector (`domray_get_storage_state`)
-Inspects `localStorage`, `sessionStorage`, or `document.cookie` directly on the active web page with automatic secret masking. Perfect for diagnosing stale tokens, expired session cookies, or cart persistence bugs.
-
-### 6. 🔄 Automatic State Lifecycle & 1-Click Reset
-* **Auto-Wipe on Detach:** When the debugger detaches (infobar cancel, DevTools opened, or user disconnect), in-memory buffers and session storage are cleanly wiped, and the MCP server store is reset.
-* **Fresh Attach State:** Attaching to a tab always starts with clean, zero-pollution buffers.
-* **1-Click Manual Reset:** The **🧹** button in the Side Panel header instantly purges all captured telemetry and audit logs on both the extension and MCP server with visual confirmation.
-
-### 7. 🖥️ Real-Time AI Audit & Telemetry Side Panel (`chrome.sidePanel`)
-Unlike popups that close on click, DOMRay uses Chrome's native Side Panel to remain docked alongside your web application:
-* **Live AI Audit Log:** Whenever your AI coding agent executes an MCP tool query, an event flashes live on the panel showing the tool name, timestamp, arguments, and return payload.
-* **Exceptions & Live Breadcrumbs:** Real-time stack traces and the last user actions displayed with colored category badges.
-* **"What AI Sees" Masking Inspector:** Live verification that `Authorization`, `Cookie`, and passwords are edge-masked (`🛡️ ***MASKED***`) before leaving the browser.
-* **DOM & State Explorer:** Preview token-pruned HTML or inspect React Fiber / Vue 3 component state directly.
-
-### 8. 🧠 Semantic DOM Sanitizer & Token Pruning Engine
-Raw `outerHTML` often consumes 10,000+ tokens due to SVG paths, inline styles, and verbose Tailwind utility classes:
-* Replaces massive `<svg>` icons with `<svg aria-label="..." role="img"><!-- [SVG Icon] --></svg>`.
-* Prunes cosmetic layout utility classes while preserving semantic and state classes (`error`, `active`, `btn`, `modal`, `hidden`, `is-invalid`).
-* Strips `<script>`, `<style>`, `<link>`, and `<template>`.
-* Masks sensitive input fields (`type="password"`, `data-private`, `token`, `secret`).
-* **Result:** **70% to 90% token reduction**, keeping LLM context clean and focused on business logic.
-
-### 9. 🔍 Framework State Inspector (React Fiber, Vue 3 & Modern SPAs)
-DOM bugs are frequently state bugs. The `domray_get_component_state` tool traverses DOM nodes via CDP `Runtime.evaluate` to:
-* **React 18 & 19 Root & Container Detection:** Automatically recognizes `__reactContainer$<id>` and `_reactRootContainer`, enabling seamless inspection of `#root`, `#__next`, `#app`, or `body` containers down to root components (`<App />`, `<Layout />`).
-* **Functional Component Hooks Unrolling:** Unrolls the React Fiber `memoizedState` linked list into structured hook values (`useState`, `useRef`, `useReducer`, `useMemo`), filtering out circular dispatcher queues and internal effect loops.
-* **Component Hierarchy Breadcrumbs:** Climbs fiber/component parents to construct full tree path breadcrumbs (e.g. `App > Layout > Navbar > SearchInput`).
-* **Higher-Order & Wrapped Components:** Gracefully unwraps `React.memo`, `React.forwardRef`, `React.Suspense`, and Context Providers.
-* **Vue 3 (Dev & Production Builds):** Inspects both development (`__vueParentComponent`) and production bundles (`_vnode.component`), unwrapping Vue 3 reactive `ref()` / `computed()` values (`_v_isRef`) inside `setupState` and Options API `data`.
-* **Vue 2 & Svelte Support:** Fallback inspection for Vue 2 (`__vue__`) and Svelte (`$capture_state`).
-* **Descendant Tree Walking:** If a queried parent container doesn't have an attached fiber directly, scans descendants up to 50 nodes to locate the nearest rendered framework component.
-* **Vanilla / HTML Fallback:** Provides detailed tag, id, class names, attributes, and child counts if no framework is attached.
-
-### 10. 🛡️ DevTools F12 Conflict Management (Auto-Heal)
-Because Chrome allows only one active debugger per tab, opening Chrome DevTools (F12) normally kills debugger attachments. DOMRay detects this cleanly:
-* Detects `replaced_with_devtools` and marks tracing as paused.
-* Shows an **`F12`** badge on the extension icon and displays an alert banner in the popup & side panel.
-* Offers a single-click **"🔄 Re-attach Debugger"** button once DevTools is closed.
-
-### 11. 🎬 Causal Flow to Test Blueprint (`domray_get_test_blueprint`)
-Synthesizes resilient, runnable **Playwright** or **Cypress** test specs directly from recorded user interactions and correlated network responses:
-* Uses semantic, non-brittle locators prioritized by official Playwright best practices (`page.getByRole`, `page.getByTestId`, `page.getByPlaceholder`, `page.locator`).
-* Automatically pairs user actions with subsequent API calls: adds `page.waitForResponse(...)` and status assertions.
-* Guarantees zero-hallucination E2E test scripts for AI coding assistants.
-
-### 12. 🌐 Auto MSW Mock Handlers Generator (`domray_get_mock_handlers`)
-Generates production-ready **Mock Service Worker (MSW v2)** or fetch-mock request handlers from recorded network transactions:
-* Intercepts HTTP 4xx/5xx error responses and JSON API responses with edge-redacted payloads.
-* Generates ready-to-use `http.get`, `http.post`, and `HttpResponse.json(...)` handler blocks for Vitest, Jest, or Playwright network mocking.
-
-### 13. 📋 1-Click AI Context Capsule & Visual Element Inspector (🎯)
-* **1-Click AI Context Capsule (`📋`):** A single click in the Side Panel or Popup copies a complete, structured Markdown diagnostic snapshot (URL, error stack trace, recent breadcrumbs, failed network calls, and component state) directly to the system clipboard—perfect for pasting into web-based **ChatGPT**, **Claude.ai**, or issue trackers.
-* **Target-Driven Element Inspector (`🎯`):** Click the crosshair icon to enter visual inspection mode. Hover over any element on the live web page to view its glowing boundary box, tag, and React component name. Click to freeze and display its selector, Playwright locator, and React Fiber state directly in the Side Panel!
+### Technologies Used:
+* **Protocol Standard:** [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) via `@modelcontextprotocol/sdk`.
+* **Browser Automation & Telemetry:** Chrome DevTools Protocol (`chrome.debugger` API) under Manifest V3.
+* **UI & Developer Experience:** Chrome native `chrome.sidePanel` for docked, persistent telemetry monitoring.
+* **Testing & Mocks:** [Playwright](https://playwright.dev/) for resilient E2E automation and [MSW v2](https://mswjs.io/) for API mocking.
+* **Core Languages:** 100% TypeScript with strict typing, bundled with `tsup` and `esbuild`.
 
 ---
 
-## Quick Start
+## 🛡️ Enterprise Security, Privacy & Zero-Data-Leak Guarantees
 
-### 1. Installation & Build
+DOMRay was architected from day one for strict corporate environments, regulated data, and internal staging applications:
+
+1. **🔒 100% Local-First (No Cloud, No Third Parties):**  
+   DOMRay has **zero external servers**. Telemetry never leaves your local machine (`127.0.0.1`). There are no analytics, no tracking, and no external API dependencies.
+2. **🛡️ Edge-Side Redaction Engine:**  
+   Data masking occurs **inside the browser extension before dispatching** over the local WebSocket:
+   * Sensitive HTTP headers (`Authorization`, `Cookie`, `Set-Cookie`, `X-API-Key`) are replaced with `***MASKED***`.
+   * Sensitive URL query parameters (`token`, `password`, `secret`, `key`) are automatically scrubbed.
+   * Form inputs (`type="password"`, `data-private`, card numbers, CVVs) never leak their values into breadcrumbs.
+3. **🔐 Origin Validation & CSWSH Protection:**  
+   The local WebSocket bridge rejects any connection whose `Origin` header is not an authorized `chrome-extension://<EXTENSION_ID>`. Regular web pages and external domains are immediately rejected with HTTP 403.
+4. **🔑 Ephemeral Cryptographic Tokens:**  
+   Every time the MCP server starts, it generates a cryptographically random 32-byte session token validated via `crypto.timingSafeEqual`.
+5. **👁️ 100% Transparent AI Audit Feed:**  
+   Through the native Chrome Side Panel, developers see a live feed of **every tool call the AI executes**, including tool parameters, timestamp, and returned payloads. You are never left wondering what data the AI requested.
+
+---
+
+## ⚡ Quick Start
+
+### 1. Clone and Build
 
 ```bash
 # Clone the repository
 git clone https://github.com/bishoku/domray.git
 cd domray
 
-# Install dependencies for all workspaces
+# Install dependencies across monorepo workspaces
 npm install
 
-# Clean build both mcp-server and extension
-npm run clean && npm run build
+# Build both the MCP server and the Chrome Extension
+npm run build
 ```
 
-### 2. Load the Chrome Extension
+### 2. Load the Extension into Google Chrome
 
-1. Open Google Chrome and navigate to `chrome://extensions`.
-2. Turn on **Developer Mode** (top right toggle).
+1. Navigate to `chrome://extensions` in Chrome.
+2. Enable **Developer mode** (toggle in the top-right corner).
 3. Click **Load unpacked** and select the directory:
    ```
    domray/extension/dist/
    ```
-4. The **DOMRay** extension icon will appear in your Chrome toolbar. Pin it for easy access.
+4. The **DOMRay** icon will appear in your Chrome toolbar. Pin it for quick access.
 
-### 3. Start the MCP Server
+### 3. Configure Your AI Coding Agent
 
-```bash
-# Start standalone for development or direct testing
-node mcp-server/dist/index.js
-```
+Add DOMRay to your AI agent's MCP configuration:
 
-Server output (written strictly to `stderr` to preserve stdio JSON-RPC):
-```
-[DOMRay] Starting MCP server v0.1.0
-[DOMRay] Session token written to: ~/.domray/session.token
-[DOMRay Bridge] Listening on http://127.0.0.1:9123 and ws://127.0.0.1:9123
-[DOMRay] MCP server ready. Waiting for AI agent connection...
-```
-
-### 4. Connect Extension & Open Side Panel
-
-1. Navigate to the web application you want to debug.
-2. Click the **DOMRay** icon in your toolbar.
-3. Click **⚡ Auto-Connect (1-Click)** (The badge will turn 🟢 **Connected**).
-4. Click **Attach Debugger** (Chrome will display the standard debugger infobar).
-5. Click **🖥️ Open Live Telemetry Panel** to launch the side panel docked next to your page!
-
-### 5. Configure Your AI Coding Agent
-
-Add DOMRay to your AI agent's MCP configuration file (e.g. `~/.cursor/mcp.json`, Claude Code, or Windsurf config):
-
+#### For Cursor (`~/.cursor/mcp.json` or Cursor Settings > Features > MCP):
 ```json
 {
   "mcpServers": {
@@ -201,176 +197,82 @@ Add DOMRay to your AI agent's MCP configuration file (e.g. `~/.cursor/mcp.json`,
 }
 ```
 
-*Note: No environment variables are required by default. Auto-pairing handles extension authorization seamlessly.*
+#### For Claude Code (`claude_desktop_config.json` or project config):
+```json
+{
+  "mcpServers": {
+    "domray": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/domray/mcp-server/dist/index.js"]
+    }
+  }
+}
+```
+
+### 4. Connect & Trace
+
+1. Open your web application (or run our example playground: `npm run dev:example`).
+2. Click the **DOMRay** extension icon in Chrome and click **⚡ Auto-Connect** (connects in 1 click).
+3. Click **Attach Debugger** to begin capturing runtime telemetry.
+4. Click **🖥️ Open Side Panel** to watch live telemetry and the AI audit stream side-by-side with your app!
 
 ---
 
-## MCP Tools Reference
+## 🧰 MCP Tools Reference (10 Tools)
 
-DOMRay exposes 8 tools to AI coding agents:
+DOMRay exposes 10 tools to connected AI coding agents:
 
 | Tool | Description | Key Parameters |
 | :--- | :--- | :--- |
-| `domray_get_active_session` | Returns the currently attached tab URL, page title, uptime, and buffer counts. | None |
-| `domray_get_latest_error` | Returns the latest unhandled runtime exception, formatted stack trace, up to 15 causal user breadcrumbs, and preceding console warnings. | `include_breadcrumbs: boolean` (default: `true`) |
-| `domray_get_flow_timeline` | Interleaves user interactions, API network calls, console messages, and exceptions into a single chronological replay for investigating causal flows and silent logic bugs. | `limit: number` (default: `30`), `include_network: boolean` (default: `true`), `include_console: boolean` (default: `true`), `failed_network_only: boolean` (default: `false`) |
-| `domray_get_console_logs` | Returns live browser console messages (`log`, `info`, `warn`, `error`) captured via CDP. | `level: "all" \| "error" \| "warn" \| "info" \| "log"` (default: `"all"`), `limit: number` (default: `30`), `search?: string` |
-| `domray_get_storage_state` | Inspects client-side browser storage (`localStorage`, `sessionStorage`, or cookies) with edge-side secret masking. | `storage_type: "local" \| "session" \| "cookies"` (default: `"local"`), `key?: string` |
-| `domray_get_network_timeline` | Returns recent HTTP requests captured by the page (status, duration, headers). | `failed_only: boolean` (default: `true`), `limit: number` (default: `10`) |
-| `domray_get_scoped_dom` | Returns a token-pruned, sanitized HTML subtree for a given CSS selector. | `selector: string`, `max_depth: number` (default: `3`), `max_characters: number` (default: `4000`) |
-| `domray_get_component_state` | Harvests internal runtime state: React Fiber `props`/`state` (with hooks unrolling & hierarchy) or Vue 3 `setupState`/`props` (dev & prod). | `selector: string` (e.g. `'#root'`, `'.cart-item'`, `'form#checkout'`) |
-
----
-
-## Enterprise Security & Zero-Data-Leak Guarantees
-
-1. **CSWSH Protection (Cross-Site WebSocket Hijacking):**  
-   The local server rejects any connection whose `Origin` header is not an authorized `chrome-extension://<EXTENSION_ID>`. Normal web pages (`http://`, `https://`) are rejected immediately.
-2. **Ephemeral Session Tokens:**  
-   Every time the MCP server boots, it generates a fresh 32-byte cryptographic random token. Connections must provide this token.
-3. **Timing-Safe Authentication:**  
-   Tokens are validated using `crypto.timingSafeEqual` to prevent timing side-channel attacks.
-4. **Edge Redaction (Zero Leakage Before Dispatch):**  
-   All redaction happens in the browser extension **before** data is sent over the local socket:
-   - `Authorization`, `Cookie`, `Set-Cookie`, `X-API-Key`, `X-Auth-Token` are replaced with `***MASKED***`.
-   - Sensitive URL query parameters (`token`, `secret`, `password`, `key`) are masked.
-   - Form inputs with `type="password"`, sensitive names (`cvv`, `card`, `pin`), or `data-private` never transmit their values.
-   - Storage values for keys matching authentication or secrets are masked.
-5. **Strict Loopback Binding:**  
-   The HTTP/WS bridge binds exclusively to `127.0.0.1`. No external networking or telemetry servers are contacted.
-
----
-
-## Project Structure
-
-```
-domray/
-├── package.json                          # Monorepo root workspace (npm workspaces)
-├── tsconfig.base.json                    # Shared base TypeScript configuration
-├── README.md                             # Comprehensive project documentation
-├── mcp-server/                           # Local MCP Server (Node.js & TypeScript)
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── src/
-│       ├── index.ts                      # stdio transport & MCP server entrypoint
-│       ├── ws-bridge.ts                  # Hybrid HTTP (/pair) + WebSocket bridge
-│       ├── session-store.ts              # Circular ring buffers & callback maps
-│       ├── security.ts                   # Token generation, origin whitelist & validation
-│       └── tools/
-│           ├── session-tools.ts          # domray_get_active_session
-│           ├── error-tools.ts            # domray_get_latest_error (Enriched with breadcrumbs)
-│           ├── timeline-tools.ts         # domray_get_flow_timeline (Unified replay)
-│           ├── console-tools.ts          # domray_get_console_logs
-│           ├── storage-tools.ts          # domray_get_storage_state
-│           ├── network-tools.ts          # domray_get_network_timeline
-│           ├── dom-tools.ts              # domray_get_scoped_dom
-│           ├── dom-sanitizer.ts          # Semantic DOM Sanitizer & Token Pruner
-│           ├── framework-tools.ts        # domray_get_component_state (Fiber/Vue)
-│           └── test-tools.ts             # domray_get_test_blueprint & domray_get_mock_handlers
-└── extension/                            # Chrome Extension (Manifest V3)
-    ├── manifest.json                     # MV3 manifest with debugger, storage, sidePanel, content_scripts
-    ├── package.json
-    ├── tsconfig.json
-    ├── tsup.config.ts                    # Build config (SW ESM, Popup IIFE, Sidepanel IIFE, Tracker IIFE)
-    └── src/
-        ├── content/
-        │   └── tracker.ts                # User interaction tracker (clicks, inputs, submits, SPA navigation)
-        ├── background/
-        │   ├── index.ts                  # Service Worker entry (synchronous top-level listeners)
-        │   ├── cdp-client.ts             # CDP wrapper (Runtime, Network, Fiber inspector, Storage)
-        │   ├── ring-buffer.ts            # Circular buffers (Errors, Network, Breadcrumbs, Console)
-        │   ├── redaction.ts              # Edge-side header, URL, and credential maskers
-        │   └── ws-client.ts              # WebSocket client, keepalive heartbeat & auto-pair
-        ├── popup/                        # Extension popup (1-Click connect & status)
-        │   ├── popup.html
-        │   ├── popup.css
-        │   └── popup.ts
-        ├── sidepanel/                    # 🖥️ Live Telemetry & AI Audit Side Panel
-        │   ├── sidepanel.html
-        │   ├── sidepanel.css
-        │   └── sidepanel.ts
-        └── utils/
-            └── constants.ts              # Port, buffer limits, and masked key sets
-├── articles/
-│   └── bridging-the-runtime-gap-for-ai-coding-agents.md  # 📰 Deep-dive engineering article
-└── examples/
-    └── checkout-app/                             # 🛒 Runnable case study application (React 18 + Vite)
-        ├── src/
-        │   ├── App.tsx                           # Simulated SSO & session storage
-        │   └── components/
-        │       ├── CouponForm.tsx                # 🐛 Contains the case-study bug
-        │       ├── OrderSummary.tsx
-        │       ├── CheckoutLayout.tsx
-        │       └── WalkthroughGuide.tsx
-        ├── vite.config.ts                        # Built-in mock API middleware (/api/cart/coupon)
-        └── README.md
-```
+| `domray_get_active_session` | Returns active tab URL, page title, uptime, and telemetry buffer counters. | None |
+| `domray_get_latest_error` | Returns the latest unhandled runtime exception, call stack, and preceding causal breadcrumbs. | `include_breadcrumbs: boolean` |
+| `domray_get_flow_timeline` | Interleaves user clicks, form submissions, network calls, and console logs into a unified chronological replay. | `limit: number`, `failed_network_only: boolean` |
+| `domray_get_test_blueprint` | 🎬 **Synthesizes runnable Playwright or Cypress E2E test specs** from recorded interactions and API calls. | `framework: "playwright" \| "cypress"`, `include_network_assertions: boolean` |
+| `domray_get_mock_handlers` | 🌐 **Synthesizes MSW v2 mock request handlers** directly from recorded 4xx/5xx API transactions. | `format: "msw" \| "fetch-mock"`, `filter: "failed_only" \| "all"` |
+| `domray_get_component_state` | Traverses React 18/19 Fiber or Vue 3 reactive trees to extract props and hooks (`useState`, etc.). | `selector: string` (e.g. `'#root'`, `'form#checkout'`) |
+| `domray_get_scoped_dom` | Returns an intelligent, token-pruned (-85% tokens) HTML subtree for a given CSS selector. | `selector: string`, `max_depth: number` |
+| `domray_get_network_timeline` | Returns recent HTTP transactions (status, duration, method, response bodies for errors). | `failed_only: boolean`, `limit: number` |
+| `domray_get_console_logs` | Returns live browser console logs (`log`, `info`, `warn`, `error`) captured via CDP. | `level: "all" \| "error" \| "warn"`, `search?: string` |
+| `domray_get_storage_state` | Reads `localStorage`, `sessionStorage`, or cookies with automatic secret masking. | `storage_type: "local" \| "session" \| "cookies"` |
 
 ---
 
 ## 🛒 Real-World Playground Example
 
-We provide a ready-to-run React 18 application simulating the exact case study from our article (*"The Case of the Frozen Button"*):
+We include a standalone React 18 application in `examples/checkout-app` simulating an enterprise checkout page behind SSO:
 
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Launch the example app (starts on http://localhost:5173)
-npm run dev:example
-```
-
-* **The Scenario:** Enterprise checkout page with simulated SSO 2FA session cookies.
-* **The Bug:** Entering `EXPIRED20` triggers an HTTP 422 response. Due to a state bug in `CouponForm.tsx`, `isSubmitting` is never reset to `false`, permanently freezing the button without throwing any unhandled JavaScript errors.
-* **Diagnosing with AI:** Prompt your AI coding agent (Cursor, Claude Code, Antigravity):
-  > *"The apply coupon button is stuck in a disabled state. Can you inspect the active page with DOMRay and fix the issue in `CouponForm.tsx`?"*
-* **The Result:** The AI uses `domray_get_flow_timeline` (sees the click and HTTP 422) and `domray_get_component_state` (inspects React Fiber hooks to see `isSubmitting: true`), and produces the exact fix in seconds!
-
----
-
-## 📰 Articles & Publications
-
-* **[Bridging the Runtime Blindspot: Giving AI Coding Agents Eyes Behind Auth Walls and Modern Web State](articles/bridging-the-runtime-gap-for-ai-coding-agents.md)**  
-  *A comprehensive 8-minute deep dive on how DOMRay solves the authentication barrier, unrolls React/Vue internal state, tracks user breadcrumbs, and maintains enterprise-grade security.*
-
----
-
-## Development & Testing
-
-```bash
-# Start MCP server in watch mode
-npm run dev:server
-
-# Start Chrome Extension in watch mode (auto-recompiles on file edit)
-npm run dev:extension
-
-# Start the example checkout app
+# Start the example checkout app (runs on http://localhost:5173)
 npm run dev:example
 
-# Test MCP tools interactively using official MCP Inspector
-npx @modelcontextprotocol/inspector node mcp-server/dist/index.js
+# Run the DOMRay-generated Playwright E2E test suite
+npm run test:example:e2e
 ```
+
+* **The Scenario:** A checkout screen with simulated SSO 2FA session tokens.
+* **The Bug:** Applying coupon `EXPIRED20` triggers an HTTP 422 error. Due to a state bug in `CouponForm.tsx`, `isSubmitting` never resets, permanently freezing the button without throwing an error in the console.
+* **Try it with your AI:**
+  > *"The checkout apply button is permanently frozen. Can you inspect the active tab with DOMRay, diagnose the issue, and provide a fix and automated test?"*
 
 ---
 
-## Roadmap & Shipped Status
+## 🤝 Contributing to DOMRay
 
-- [x] **Chrome DevTools Protocol (CDP) Telemetry Engine** (Exceptions, console, network)
-- [x] **MV3 Service Worker Lifecycle Management** (15s heartbeat keepalive + session storage recovery)
-- [x] **Edge-Side Data Masking** (Sensitive headers, passwords, and tokens)
-- [x] **Zero-Friction 1-Click Auto-Pairing** (`POST/GET /pair` loopback handshake)
-- [x] **User Action Tracking & Causal Breadcrumbs** (Clicks, inputs, form submits, SPA route changes)
-- [x] **Unified Chronological Flow Timeline** (`domray_get_flow_timeline` for silent & logic bugs)
-- [x] **Live Console Stream Inspector** (`domray_get_console_logs` filterable by level)
-- [x] **Client Storage State Inspector** (`domray_get_storage_state` for localStorage/sessionStorage/cookies)
-- [x] **State Lifecycle Auto-Reset & 1-Click Clear** (Clean detach/attach state + sidebar purge)
-- [x] **Semantic DOM Sanitizer & Token Pruner** (-80% LLM token consumption)
-- [x] **Framework State Inspector** (React Fiber props/state & Vue 3 setupState)
-- [x] **DevTools F12 Auto-Heal** (Detection and graceful pause/re-attach)
-- [x] **Live Telemetry & AI Audit Side Panel** (`chrome.sidePanel` real-time transparency dashboard)
-- [x] **1-Click AI Context Capsule** (`📋` Markdown prompt export for web ChatGPT & Claude)
-- [x] **Target-Driven Visual Element Inspector** (`🎯` live hover highlighter & React Fiber inspection)
-- [x] **Causal Flow to E2E Spec Blueprint** (`domray_get_test_blueprint` for Playwright & Cypress)
-- [x] **Auto MSW Mock Handlers** (`domray_get_mock_handlers` for unit and integration testing)
-- [ ] **Accessibility Tree Mode** (Direct CDP `Accessibility.getFullAXTree` export option)
-- [ ] **Native Messaging Transport** (Alternative loopback transport without WebSockets)
+We believe that the future of software development lies in empowering AI assistants with **real, high-fidelity runtime awareness**—without sacrificing developer privacy or enterprise security.
+
+DOMRay is an **open-source, community-driven project**, and we warmly welcome contributions from frontend developers, AI enthusiasts, and tool builders alike!
+
+### How You Can Help:
+* ⭐ **Star the Repository:** If DOMRay helps your daily workflow, star the repo to help other developers discover it!
+* 🧩 **Expand Framework State Inspectors:** Help us build deeper extractors for **Svelte 5 runes**, **Angular signals**, **SolidJS stores**, or **Zustand / Redux** slices.
+* 🧪 **Improve Testing Blueprints:** Add support for Vitest Component Testing, Jest, or custom locator strategies.
+* 🐞 **Report Issues & Ideas:** Found an edge case or have a vision for a new MCP tool? Open an [Issue](https://github.com/bishoku/domray/issues) or start a discussion.
+* 🔀 **Submit Pull Requests:** Check out open issues, fork the repo, and submit your PRs. We strive to review and merge community contributions promptly.
+
+Please feel free to explore the codebase, test it with your favorite coding agents, and share your thoughts. Let's make AI-assisted frontend development faster, smarter, and context-aware together!
+
+---
+
+## 📄 License
+
+DOMRay is open-source software licensed under the [MIT License](LICENSE).
