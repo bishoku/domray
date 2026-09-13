@@ -8,6 +8,8 @@ dist/
 */dist/
 dist-ssr/
 *.local
+test-results/
+playwright-report/
 
 # Source maps & build metadata
 *.js.map
