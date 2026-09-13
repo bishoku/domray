@@ -19,9 +19,17 @@ import {
   breadcrumbBuffer,
   consoleBuffer,
   persistBuffers,
+  type ErrorEntry,
   type NetworkEntry,
   type ConsoleEntry,
+  type BreadcrumbEntry,
 } from "./ring-buffer.js";
+import {
+  sendNetwork,
+  sendError,
+  sendConsole,
+  sendBreadcrumb,
+} from "./ws-client.js";
 
 // Active debuggee tab ID
 let activeTabId: number | null = null;
@@ -640,15 +648,17 @@ function onExceptionThrown(params: RuntimeExceptionThrownParams): void {
       .map((f) => `  at ${f.functionName || "(anonymous)"} (${f.url}:${f.lineNumber}:${f.columnNumber})`)
       .join("\n") ?? "";
 
-  errorBuffer.push({
+  const errEntry: ErrorEntry = {
     timestamp: Date.now(),
     message,
     stack: stack || undefined,
     url: d.url,
     lineNumber: d.lineNumber,
     columnNumber: d.columnNumber,
-  });
+  };
 
+  errorBuffer.push(errEntry);
+  sendError(errEntry);
   void persistBuffers();
 }
 
@@ -675,14 +685,17 @@ function onConsoleApiCalled(params: RuntimeConsoleApiCalledParams): void {
   };
 
   consoleBuffer.push(entry);
+  sendConsole(entry);
 
   // Also track error/warn level as breadcrumbs
   if (type === "error" || type === "warn") {
-    breadcrumbBuffer.push({
+    const b: BreadcrumbEntry = {
       timestamp: Date.now(),
       type: "console",
       description: `console.${type}: ${text.slice(0, 200)}`,
-    });
+    };
+    breadcrumbBuffer.push(b);
+    sendBreadcrumb(b);
   }
 
   void persistBuffers();
@@ -746,6 +759,7 @@ function onLoadingFailed(params: NetworkLoadingFailedParams): void {
   entry.durationMs = entry._sentAt ? Date.now() - entry._sentAt : undefined;
 
   networkBuffer.push(entry);
+  sendNetwork(entry);
   pendingRequests.delete(params.requestId);
   void persistBuffers();
 }
@@ -787,6 +801,7 @@ async function onLoadingFinished(params: NetworkLoadingFinishedParams): Promise<
     }
 
     networkBuffer.push(entry);
+    sendNetwork(entry);
     void persistBuffers();
   }
   pendingRequests.delete(params.requestId);
