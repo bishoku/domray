@@ -111,14 +111,14 @@ When an error happens, the AI doesn't just see `TypeError: Cannot read propertie
 ### 2. The Unified Flow Timeline (`domray_get_flow_timeline`)
 To solve the "Silent Bug" problem where no error is thrown, DOMRay interleaves user interactions, API network calls, console logs, and exceptions into a single chronological replay:
 
-```markdown
+
 | Time | Type | Summary | Details |
 | :--- | :--- | :--- | :--- |
 | +0ms | 🖱️ CLICK | Clicked button#coupon-btn "Apply" | form#checkout |
 | +42ms | 🌐 NETWORK | POST /api/v1/coupons/apply | Status: 422 Unprocessable |
 | +48ms | 💬 CONSOLE | [warn] Coupon validation failed | "Code expired on 2026-09-01" |
 | +50ms | ⚡ ACTION | Input in input#coupon-code | Cleared |
-```
+
 
 With one tool call, an AI model can immediately recognize: *"The coupon API returned a 422 with an expiration message, but the UI failed to update the error state and left the button disabled."*
 
@@ -175,11 +175,12 @@ You are working on an e-commerce checkout flow behind a staging login. A QA engi
 > *"The coupon apply button is stuck in a disabled state on the checkout page. Can you inspect the active page and fix the issue?"*
 
 ### What Happens Under the Hood
-1. The AI invokes `domray_get_flow_timeline`:
+#### The AI invokes `domray_get_flow_timeline`:
    * It sees the click event on `button#apply-coupon`.
    * It sees the `POST /api/cart/coupon` request returned HTTP `422 Unprocessable Entity`.
    * It sees zero uncaught errors.
-2. The AI invokes `domray_get_component_state` with `selector: "button#apply-coupon"`:
+
+#### The AI invokes `domray_get_component_state` with `selector: "button#apply-coupon"`:
    * DOMRay navigates the React Fiber tree up to `<CouponForm>`.
    * It extracts the component hierarchy: `App > CartPage > CheckoutLayout > CouponForm`.
    * It unrolls the hooks:
@@ -193,7 +194,8 @@ You are working on an e-commerce checkout flow behind a staging login. A QA engi
        ]
      }
      ```
-3. **The AI's Response:**
+
+#### The AI's Response:
 
 > *"I inspected your live browser session. The `POST /api/cart/coupon` endpoint returned a 422 error with `{ error: 'Coupon expired' }`. In `CouponForm.tsx`, your `handleSubmit` function sets `setIsSubmitting(true)` in the `try` block, but does not have a `finally` block or catch handler to reset `setIsSubmitting(false)` when an API error occurs. Here is the fix:"*
 
