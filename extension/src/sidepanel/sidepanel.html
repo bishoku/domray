@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DOMRay — Live Telemetry & AI Audit</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <!-- Header Bar -->
+  <header class="header">
+    <div class="header__brand">
+      <span class="header__logo">◉</span>
+      <div class="header__title-group">
+        <h1 class="header__title">DOMRay</h1>
+        <span class="header__subtitle">Live AI Telemetry</span>
+      </div>
+    </div>
+    <div class="header__actions">
+      <button id="clear-btn" class="icon-btn" title="Clear Buffers">🧹</button>
+      <button id="snapshot-btn" class="icon-btn" title="Take DOM Snapshot">📸</button>
+      <button id="attach-btn" class="btn btn--sm btn--primary">Attach</button>
+    </div>
+  </header>
+
+  <!-- Dual Status Bar: MCP Server + Tab Tracing -->
+  <div class="system-status-bar">
+    <div id="mcp-status-chip" class="status-chip status-chip--disconnected">
+      <span class="status-chip__dot"></span>
+      <span id="mcp-chip-text" class="status-chip__text">MCP: Offline</span>
+    </div>
+    <div id="tracing-status-chip" class="status-chip status-chip--inactive">
+      <span class="status-chip__dot"></span>
+      <span id="tracing-chip-text" class="status-chip__text">Tracing: Inactive</span>
+    </div>
+  </div>
+
+  <!-- Active Tab Info -->
+  <div class="session-bar">
+    <span class="session-bar__label">Active Tab:</span>
+    <span id="tab-title" class="session-bar__title truncate">Loading…</span>
+  </div>
+
+  <!-- DevTools / Detach Conflict Warning Banner -->
+  <div id="paused-banner" class="banner banner--warning hidden">
+    <span id="paused-banner-text">⚠️ <strong>Tracing Paused:</strong> Chrome DevTools (F12) is active. Close DevTools to resume.</span>
+    <button id="reattach-btn" class="btn btn--xs btn--warning">Re-attach</button>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="tab-audit">
+      <span class="tab-icon">🤖</span>
+      <span class="tab-label">AI Audit</span>
+      <span id="count-audit" class="tab-badge">0</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-errors">
+      <span class="tab-icon">⚡</span>
+      <span class="tab-label">Errors & Actions</span>
+      <span id="count-errors" class="tab-badge">0</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-network">
+      <span class="tab-icon">🌐</span>
+      <span class="tab-label">Network</span>
+      <span id="count-network" class="tab-badge">0</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-dom">
+      <span class="tab-icon">🧩</span>
+      <span class="tab-label">DOM & State</span>
+    </button>
+  </nav>
+
+  <!-- Content Container -->
+  <main class="content">
+
+    <!-- TAB 1: AI Audit Log -->
+    <section id="tab-audit" class="tab-pane active">
+      <div class="pane-header">
+        <span class="pane-title">AI Agent Query Feed</span>
+        <span class="pane-hint">Live MCP calls from Cursor / Claude Code / Antigravity</span>
+      </div>
+      <div id="audit-list" class="list">
+        <div class="empty-state">
+          <span class="empty-state__icon">🤖</span>
+          <p class="empty-state__text">No AI tool queries yet.</p>
+          <p class="empty-state__subtext">When your AI coding agent requests runtime telemetry via MCP, queries and payloads will stream here live.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: Errors & Breadcrumbs -->
+    <section id="tab-errors" class="tab-pane">
+      <!-- Section 1: Live User Interactions (Causal Breadcrumbs) -->
+      <div class="pane-header" style="display:flex; flex-direction:row; justify-content:space-between; align-items:center;">
+        <div>
+          <span class="pane-title">Live User Interactions</span>
+          <span class="pane-hint" style="display:block;">Clicks, inputs, forms &amp; navigation</span>
+        </div>
+        <span id="count-crumbs" class="badge" style="background:rgba(122,162,247,0.15); color:#7aa2f7; font-size:10px; font-weight:700;">0 actions</span>
+      </div>
+      <div id="breadcrumbs-list" class="list" style="margin-bottom: 20px;">
+        <div class="empty-state" style="padding: 20px 16px;">
+          <span class="empty-state__icon" style="font-size:24px;">🖱️</span>
+          <p class="empty-state__text" style="font-size:12px;">No interactions recorded yet</p>
+          <p class="empty-state__subtext" style="font-size:10.5px;">Click buttons, type in inputs, or navigate on the active tab to see live breadcrumbs.</p>
+        </div>
+      </div>
+
+      <!-- Section 2: Runtime Exceptions -->
+      <div class="pane-header">
+        <span class="pane-title">Captured Runtime Exceptions</span>
+      </div>
+      <div id="errors-list" class="list">
+        <div class="empty-state" style="padding: 20px 16px;">
+          <span class="empty-state__icon" style="font-size:24px;">✅</span>
+          <p class="empty-state__text" style="font-size:12px;">Zero errors recorded</p>
+          <p class="empty-state__subtext" style="font-size:10.5px;">Unhandled exceptions on the page will be caught, frozen, and timestamped here.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Network Timeline -->
+    <section id="tab-network" class="tab-pane">
+      <div class="network-toolbar">
+        <input id="net-search" type="text" class="input input--sm" placeholder="Filter requests (URL, status)…" />
+        <label class="checkbox-label">
+          <input id="net-failed-only" type="checkbox" />
+          <span>Failed only (4xx/5xx)</span>
+        </label>
+        <div class="redaction-badge" title="Edge Redaction Active">
+          <span>🛡️ Edge Redaction ON</span>
+        </div>
+      </div>
+      <div id="network-list" class="list">
+        <div class="empty-state">
+          <span class="empty-state__icon">🌐</span>
+          <p class="empty-state__text">No network requests captured</p>
+          <p class="empty-state__subtext">XHR and fetch requests will stream here as the page communicates with APIs.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: DOM & Component State -->
+    <section id="tab-dom" class="tab-pane">
+      <div class="pane-header">
+        <span class="pane-title">Live Element Inspector</span>
+      </div>
+      <div class="dom-controls">
+        <input id="dom-selector-input" type="text" class="input input--sm" placeholder="CSS selector (e.g. form#checkout, #root, .toast)" value="#root" />
+        <div class="dom-buttons">
+          <button id="dom-inspect-btn" class="btn btn--sm btn--primary">Pruned DOM</button>
+          <button id="framework-inspect-btn" class="btn btn--sm btn--secondary">⚛️ React / Vue State</button>
+        </div>
+      </div>
+      <div id="dom-result-area" class="code-result-area">
+        <div class="empty-state">
+          <span class="empty-state__icon">🧩</span>
+          <p class="empty-state__text">Target an element above</p>
+          <p class="empty-state__subtext">View the exact semantic-pruned HTML or React Fiber / Vue component state seen by the AI.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

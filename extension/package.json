@@ -1,0 +1,17 @@
+{
+  "name": "@domray/extension",
+  "version": "0.1.0",
+  "description": "DOMRay Chrome Extension — CDP telemetry bridge",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsup && npm run copy-static",
+    "dev": "tsup --watch --onSuccess \"npm run copy-static\"",
+    "copy-static": "mkdir -p dist/popup dist/sidepanel dist/icons && cp src/popup/popup.html dist/popup/ && cp src/popup/popup.css dist/popup/ && cp src/sidepanel/sidepanel.html dist/sidepanel/ && cp src/sidepanel/sidepanel.css dist/sidepanel/ && cp src/icons/*.png dist/icons/ && cp manifest.json dist/",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.280",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "domray",
+  "version": "0.1.0",
+  "description": "Browser runtime telemetry bridge for AI coding agents via Model Context Protocol (MCP)",
+  "license": "MIT",
+  "author": "DOMRay Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bishoku/domray"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "devtools",
+    "cdp",
+    "chrome-extension",
+    "telemetry",
+    "cursor",
+    "claude-code"
+  ],
+  "private": true,
+  "workspaces": [
+    "mcp-server",
+    "extension",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "build:server": "npm run build --workspace=mcp-server",
+    "build:extension": "npm run build --workspace=extension",
+    "build:example": "npm run build --workspace=@domray/example-checkout",
+    "dev:server": "npm run dev --workspace=mcp-server",
+    "dev:extension": "npm run dev --workspace=extension",
+    "dev:example": "npm run dev --workspace=@domray/example-checkout",
+    "clean": "rm -rf mcp-server/dist extension/dist examples/checkout-app/dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

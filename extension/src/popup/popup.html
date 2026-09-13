@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DOMRay</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- Header Bar -->
+  <header>
+    <div class="logo">
+      <span class="logo-icon">◉</span>
+      <span class="logo-text">DOMRay</span>
+    </div>
+    <div id="overall-badge" class="badge badge--disconnected">OFFLINE</div>
+  </header>
+
+  <!-- Open Side Panel Primary Action -->
+  <button id="open-sidepanel-btn" class="btn btn--accent" style="width: 100%;">
+    🖥️ Open Live Telemetry Panel
+  </button>
+
+  <!-- DevTools Conflict Warning (shown only when F12 is truly active on this tab) -->
+  <div id="paused-banner" class="alert alert--warning hidden">
+    <div class="alert-content">
+      <span>⚠️ <strong>Tracing Paused:</strong> Chrome DevTools (F12) is active. Close F12 to resume.</span>
+      <button id="banner-reattach-btn" class="btn btn--warning btn--xs">Re-attach</button>
+    </div>
+  </div>
+
+  <!-- CARD 1: MCP Server Bridge -->
+  <div class="card">
+    <div class="card__header">
+      <span class="card__title">🔌 MCP Server Bridge</span>
+      <span id="mcp-status-pill" class="pill pill--disconnected">Offline</span>
+    </div>
+    <div class="card__body">
+      <!-- When Disconnected -->
+      <div id="mcp-disconnected-view">
+        <button id="auto-pair-btn" class="btn btn--primary" style="width: 100%; margin-bottom: 6px;">
+          ⚡ Auto-Connect (1-Click)
+        </button>
+        <p id="pair-error" class="hint hint--error hidden"></p>
+        <details class="manual-token-details">
+          <summary>or connect with token</summary>
+          <div class="input-group" style="margin-top: 6px;">
+            <input
+              id="token-input"
+              type="text"
+              placeholder="Paste session token…"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="connect-btn" class="btn btn--secondary btn--sm" style="margin-top: 4px;">Connect</button>
+          </div>
+        </details>
+      </div>
+
+      <!-- When Connected -->
+      <div id="mcp-connected-view" class="hidden">
+        <div class="status-detail">
+          <span class="status-detail__label">Host:</span>
+          <span class="status-detail__val font-mono">127.0.0.1:9123</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD 2: Active Tab Tracing -->
+  <div class="card">
+    <div class="card__header">
+      <span class="card__title">🎯 Active Tab Tracing</span>
+      <span id="tracing-status-pill" class="pill pill--inactive">Inactive</span>
+    </div>
+    <div class="card__body">
+      <div class="status-detail">
+        <span class="status-detail__label">Page:</span>
+        <span id="session-title" class="status-detail__val truncate" title="Target page">—</span>
+      </div>
+      <div class="tracing-actions" style="margin-top: 8px; display: flex; gap: 6px;">
+        <button id="tracing-toggle-btn" class="btn btn--primary btn--sm" style="flex: 1;">
+          ▶ Start Tracing
+        </button>
+        <button id="snapshot-btn" class="btn btn--secondary btn--sm" title="Capture DOM snapshot">
+          📸 Snapshot
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Actions -->
+  <div id="bottom-actions" class="hidden" style="display: flex; justify-content: flex-end; margin-top: 2px;">
+    <button id="disconnect-btn" class="btn btn--danger btn--xs">
+      Disconnect All
+    </button>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p class="hint">
+      Shortcut: <kbd>Ctrl+Shift+D</kbd> (Mac: <kbd>⌘⇧D</kbd>)
+    </p>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
