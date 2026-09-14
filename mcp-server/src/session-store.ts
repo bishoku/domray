@@ -145,6 +145,20 @@ class SessionStore {
     { resolve: (data: string) => void; reject: (err: Error) => void; timer: NodeJS.Timeout }
   >();
 
+  /** Pending Accessibility Tree query callbacks keyed by a request-id */
+  readonly a11yTreeCallbacks = new Map<
+    string,
+    { resolve: (tree: string) => void; reject: (err: Error) => void; timer: NodeJS.Timeout }
+  >();
+
+  /** Pending Query Cache callbacks keyed by a request-id */
+  readonly queryCacheCallbacks = new Map<
+    string,
+    { resolve: (data: string) => void; reject: (err: Error) => void; timer: NodeJS.Timeout }
+  >();
+
+  latestWebVitals: Record<string, unknown> | null = null;
+
   reset(): void {
     this.activeSession = null;
     this.errors.clear();
@@ -152,9 +166,12 @@ class SessionStore {
     this.breadcrumbs.clear();
     this.consoleLogs.clear();
     this.lastSnapshot = null;
+    this.latestWebVitals = null;
     this.domQueryCallbacks.clear();
     this.componentStateCallbacks.clear();
     this.storageQueryCallbacks.clear();
+    this.a11yTreeCallbacks.clear();
+    this.queryCacheCallbacks.clear();
   }
 }
 

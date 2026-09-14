@@ -23,6 +23,7 @@ import { registerTimelineTools } from "./tools/timeline-tools.js";
 import { registerConsoleTools } from "./tools/console-tools.js";
 import { registerStorageTools } from "./tools/storage-tools.js";
 import { registerTestTools } from "./tools/test-tools.js";
+import { registerAdvancedTools } from "./tools/advanced-tools.js";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -63,6 +64,7 @@ async function main(): Promise<void> {
   registerConsoleTools(server);
   registerStorageTools(server);
   registerTestTools(server);
+  registerAdvancedTools(server);
 
   // 5. Connect stdio transport
   const transport = new StdioServerTransport();

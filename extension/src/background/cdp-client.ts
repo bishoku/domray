@@ -589,6 +589,245 @@ export async function inspectStorage(
 }
 
 // ---------------------------------------------------------------------------
+// ♿ Accessibility Tree (AXTree) Inspector via CDP Accessibility.getFullAXTree
+// ---------------------------------------------------------------------------
+
+interface AXValue {
+  type: string;
+  value?: any;
+}
+
+interface AXProperty {
+  name: string;
+  value: AXValue;
+}
+
+interface AXNode {
+  nodeId: string;
+  ignored: boolean;
+  role?: AXValue;
+  name?: AXValue;
+  description?: AXValue;
+  value?: AXValue;
+  properties?: AXProperty[];
+  childIds?: string[];
+  parentId?: string;
+}
+
+export async function inspectA11yTree(
+  _selector?: string,
+  maxDepth = 6,
+  filter: "all" | "interesting_only" = "interesting_only",
+): Promise<string> {
+  if (activeTabId === null) throw new Error("No active debugging session");
+
+  try {
+    await chrome.debugger.sendCommand({ tabId: activeTabId }, "Accessibility.enable");
+  } catch {
+    // Already enabled or supported
+  }
+
+  const res = (await chrome.debugger.sendCommand(
+    { tabId: activeTabId },
+    "Accessibility.getFullAXTree",
+    {},
+  )) as { nodes?: AXNode[] };
+
+  const nodes = res.nodes || [];
+  if (nodes.length === 0) {
+    return "Accessibility tree is empty or unavailable for this document.";
+  }
+
+  const nodeMap = new Map<string, AXNode>();
+  for (const n of nodes) {
+    nodeMap.set(n.nodeId, n);
+  }
+
+  // Find root node (RootWebArea or first node)
+  const root = nodes.find((n) => n.role?.value === "RootWebArea") || nodes[0];
+  if (!root) return "No root accessibility node found.";
+
+  const lines: string[] = [];
+
+  function formatNodeLine(node: AXNode): string {
+    const role = node.role?.value || "generic";
+    const name = node.name?.value ? ` "${node.name.value.trim().slice(0, 80)}"` : "";
+    const val = node.value?.value !== undefined ? ` (value: "${String(node.value.value).slice(0, 40)}")` : "";
+
+    const props: string[] = [];
+    if (node.properties) {
+      for (const p of node.properties) {
+        if (p.name === "level") props.push(`level=${p.value.value}`);
+        else if (p.name === "disabled" && p.value.value) props.push("disabled");
+        else if (p.name === "focused" && p.value.value) props.push("focused");
+        else if (p.name === "required" && p.value.value) props.push("required");
+        else if (p.name === "checked" && p.value.value) props.push(`checked=${p.value.value}`);
+        else if (p.name === "expanded" && p.value.value !== undefined) props.push(`expanded=${p.value.value}`);
+        else if (p.name === "modal" && p.value.value) props.push("modal");
+      }
+    }
+    const propStr = props.length > 0 ? ` [${props.join(", ")}]` : "";
+    return `[${role}]${name}${val}${propStr}`;
+  }
+
+  function walk(nodeId: string, depth: number): void {
+    if (depth > maxDepth) return;
+    const node = nodeMap.get(nodeId);
+    if (!node) return;
+
+    const isIgnored = node.ignored;
+    if (filter === "interesting_only" && isIgnored) {
+      return;
+    }
+
+    const role = node.role?.value;
+    const hasName = Boolean(node.name?.value && node.name.value.trim().length > 0);
+    const isGeneric = (role === "generic" || role === "none" || role === "InlineTextBox") && !hasName;
+
+    if (!isGeneric || filter === "all") {
+      const indent = "  ".repeat(depth);
+      lines.push(`${indent}- ${formatNodeLine(node)}`);
+    }
+
+    const nextDepth = isGeneric ? depth : depth + 1;
+    if (node.childIds) {
+      for (const cid of node.childIds) {
+        walk(cid, nextDepth);
+      }
+    }
+  }
+
+  walk(root.nodeId, 0);
+
+  return [
+    `# ♿ Accessibility Semantic Tree (${lines.length} nodes, depth: ${maxDepth})`,
+    "",
+    "```text",
+    lines.slice(0, 400).join("\n"),
+    lines.length > 400 ? `\n... (${lines.length - 400} more nodes truncated for token efficiency)` : "",
+    "```",
+  ].join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// ⚡ TanStack / React Query Cache Inspector via CDP Runtime.evaluate
+// ---------------------------------------------------------------------------
+
+export async function inspectQueryCache(
+  queryKey?: string,
+  statusFilter?: string,
+): Promise<string> {
+  if (activeTabId === null) throw new Error("No active debugging session");
+
+  const script = `
+    (function(targetKey, statusFilter) {
+      try {
+        let queryClient = window.queryClient || window.__REACT_QUERY_CLIENT__ || window.__TANSTACK_QUERY_CLIENT__;
+
+        if (!queryClient) {
+          const roots = [
+            document.querySelector("#root"),
+            document.querySelector("#__next"),
+            document.querySelector("#app"),
+            document.body
+          ].filter(Boolean);
+
+          for (const root of roots) {
+            const fiberKey = Object.keys(root).find(k => k.startsWith("__reactFiber$") || k.startsWith("__reactContainer$"));
+            if (!fiberKey) continue;
+            let fiber = root[fiberKey];
+            let depth = 0;
+            while (fiber && depth < 60) {
+              if (fiber.memoizedProps?.client?.getQueryCache) {
+                queryClient = fiber.memoizedProps.client;
+                break;
+              }
+              if (fiber.stateNode?.props?.client?.getQueryCache) {
+                queryClient = fiber.stateNode.props.client;
+                break;
+              }
+              fiber = fiber.child;
+              depth++;
+            }
+            if (queryClient) break;
+          }
+        }
+
+        if (!queryClient || typeof queryClient.getQueryCache !== "function") {
+          return JSON.stringify({
+            found: false,
+            message: "No TanStack Query / React Query client found on active page.",
+          });
+        }
+
+        const cache = queryClient.getQueryCache();
+        const allQueries = cache.getAll();
+
+        let filtered = allQueries;
+        if (targetKey) {
+          filtered = filtered.filter(q => JSON.stringify(q.queryKey).toLowerCase().includes(targetKey.toLowerCase()));
+        }
+        if (statusFilter && statusFilter !== "all") {
+          filtered = filtered.filter(q => q.state.status === statusFilter);
+        }
+
+        const queries = filtered.slice(0, 30).map(q => {
+          let dataPreview = null;
+          if (q.state.data !== undefined) {
+            try {
+              dataPreview = JSON.stringify(q.state.data).slice(0, 400);
+            } catch {
+              dataPreview = String(q.state.data).slice(0, 100);
+            }
+          }
+
+          return {
+            queryKey: q.queryKey,
+            queryHash: q.queryHash,
+            status: q.state.status,
+            fetchStatus: q.state.fetchStatus,
+            isStale: typeof q.isStale === "function" ? q.isStale() : false,
+            dataUpdatedAt: q.state.dataUpdatedAt,
+            errorUpdatedAt: q.state.errorUpdatedAt,
+            error: q.state.error ? String(q.state.error.message || q.state.error) : null,
+            dataPreview: dataPreview,
+          };
+        });
+
+        return JSON.stringify({
+          found: true,
+          totalCount: allQueries.length,
+          matchedCount: filtered.length,
+          queries,
+        });
+      } catch (err) {
+        return JSON.stringify({
+          found: false,
+          error: String(err),
+        });
+      }
+    })(${JSON.stringify(queryKey || null)}, ${JSON.stringify(statusFilter || "all")})
+  `;
+
+  const result = (await chrome.debugger.sendCommand(
+    { tabId: activeTabId },
+    "Runtime.evaluate",
+    {
+      expression: script,
+      returnByValue: true,
+      silent: true,
+    },
+  )) as { result?: { value?: string }; exceptionDetails?: unknown };
+
+  if (result.exceptionDetails) {
+    throw new Error("CDP evaluation failed during query cache inspection");
+  }
+
+  return result.result?.value ?? "{}";
+}
+
+
+// ---------------------------------------------------------------------------
 // CDP event dispatcher — called from background/index.ts top-level listener
 // ---------------------------------------------------------------------------
 

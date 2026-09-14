@@ -506,6 +506,231 @@ function stopInspector(): void {
   }
 }
 
+// ---------------------------------------------------------------------------
+// 🤖 In-Page AI Spotlight (Flashes glowing highlight when AI inspects selector)
+// ---------------------------------------------------------------------------
+
+let spotlightOverlay: HTMLDivElement | null = null;
+let spotlightBadge: HTMLDivElement | null = null;
+let spotlightTimer: ReturnType<typeof setTimeout> | null = null;
+
+function spotlightElement(selector: string, toolName: string): void {
+  try {
+    const el = document.querySelector(selector) as HTMLElement | null;
+    if (!el) return;
+
+    if (!spotlightOverlay) {
+      spotlightOverlay = document.createElement("div");
+      spotlightOverlay.id = "__domray_ai_spotlight_overlay__";
+      spotlightOverlay.style.cssText = `
+        position: fixed;
+        pointer-events: none;
+        z-index: 2147483647;
+        border: 2px solid #c084fc;
+        background: rgba(192, 132, 252, 0.18);
+        border-radius: 6px;
+        box-shadow: 0 0 25px rgba(192, 132, 252, 0.85), inset 0 0 12px rgba(192, 132, 252, 0.35);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        display: none;
+      `;
+      document.body.appendChild(spotlightOverlay);
+    }
+
+    if (!spotlightBadge) {
+      spotlightBadge = document.createElement("div");
+      spotlightBadge.id = "__domray_ai_spotlight_badge__";
+      spotlightBadge.style.cssText = `
+        position: fixed;
+        pointer-events: none;
+        z-index: 2147483647;
+        background: #1e1035;
+        color: #f3e8ff;
+        border: 1px solid #c084fc;
+        padding: 4px 10px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        display: none;
+        white-space: nowrap;
+      `;
+      document.body.appendChild(spotlightBadge);
+    }
+
+    // Smooth scroll into view if outside viewport
+    const rect = el.getBoundingClientRect();
+    const inViewport = (
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+      rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
+
+    if (!inViewport) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    }
+
+    const updatedRect = el.getBoundingClientRect();
+
+    spotlightOverlay.style.display = "block";
+    spotlightOverlay.style.top = `${updatedRect.top}px`;
+    spotlightOverlay.style.left = `${updatedRect.left}px`;
+    spotlightOverlay.style.width = `${updatedRect.width}px`;
+    spotlightOverlay.style.height = `${updatedRect.height}px`;
+    spotlightOverlay.style.opacity = "1";
+
+    spotlightBadge.style.display = "block";
+    spotlightBadge.textContent = `🤖 AI Inspecting: ${toolName}`;
+    const badgeTop = updatedRect.top > 32 ? updatedRect.top - 28 : updatedRect.bottom + 8;
+    spotlightBadge.style.top = `${badgeTop}px`;
+    spotlightBadge.style.left = `${Math.max(8, updatedRect.left)}px`;
+    spotlightBadge.style.opacity = "1";
+
+    if (spotlightTimer) clearTimeout(spotlightTimer);
+    spotlightTimer = setTimeout(() => {
+      if (spotlightOverlay) {
+        spotlightOverlay.style.opacity = "0";
+        setTimeout(() => {
+          if (spotlightOverlay) spotlightOverlay.style.display = "none";
+        }, 250);
+      }
+      if (spotlightBadge) {
+        spotlightBadge.style.opacity = "0";
+        setTimeout(() => {
+          if (spotlightBadge) spotlightBadge.style.display = "none";
+        }, 250);
+      }
+    }, 1800);
+  } catch {
+    // Ignore safely
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 📊 Core Web Vitals & Layout Shift Telemetry
+// ---------------------------------------------------------------------------
+
+function initWebVitalsTracker(): void {
+  if (typeof PerformanceObserver === "undefined") return;
+
+  let clsScore = 0;
+  let lcpMs = 0;
+  let inpMs = 0;
+  let lcpElement: string | undefined;
+  const layoutShifts: Array<{ value: number; selector: string }> = [];
+  let vitalsDebounce: ReturnType<typeof setTimeout> | null = null;
+
+  function rateCLS(score: number): "good" | "needs-improvement" | "poor" {
+    return score <= 0.1 ? "good" : score <= 0.25 ? "needs-improvement" : "poor";
+  }
+
+  function rateLCP(ms: number): "good" | "needs-improvement" | "poor" {
+    return ms <= 2500 ? "good" : ms <= 4000 ? "needs-improvement" : "poor";
+  }
+
+  function rateINP(ms: number): "good" | "needs-improvement" | "poor" {
+    return ms <= 200 ? "good" : ms <= 500 ? "needs-improvement" : "poor";
+  }
+
+  function emitWebVitals(): void {
+    if (vitalsDebounce) clearTimeout(vitalsDebounce);
+    vitalsDebounce = setTimeout(() => {
+      try {
+        let ttfbMs: number | undefined;
+        let domContentLoadedMs: number | undefined;
+        let loadMs: number | undefined;
+
+        const navEntries = performance.getEntriesByType("navigation");
+        if (navEntries.length > 0) {
+          const nav = navEntries[0] as PerformanceNavigationTiming;
+          ttfbMs = Math.round(nav.responseStart - nav.requestStart);
+          domContentLoadedMs = Math.round(nav.domContentLoadedEventEnd - nav.startTime);
+          loadMs = Math.round(nav.loadEventEnd - nav.startTime);
+        }
+
+        const payload = {
+          cls: parseFloat(clsScore.toFixed(3)),
+          lcpMs: Math.round(lcpMs),
+          inpMs: Math.round(inpMs),
+          clsRating: rateCLS(clsScore),
+          lcpRating: rateLCP(lcpMs),
+          inpRating: rateINP(inpMs),
+          lcpElement,
+          layoutShifts: layoutShifts.slice(-5),
+          ttfbMs,
+          domContentLoadedMs,
+          loadMs,
+        };
+
+        if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
+          chrome.runtime.sendMessage({
+            type: "web-vitals-update",
+            payload,
+          }).catch(() => {});
+        }
+      } catch {
+        // ignore
+      }
+    }, 400);
+  }
+
+  // 1. Layout Shift (CLS)
+  try {
+    const clsObserver = new PerformanceObserver((entryList) => {
+      for (const entry of entryList.getEntries() as any[]) {
+        if (!entry.hadRecentInput && entry.value) {
+          clsScore += entry.value;
+          let selector = "unknown";
+          if (entry.sources && entry.sources.length > 0 && entry.sources[0].node) {
+            selector = getCleanSelector(entry.sources[0].node);
+          }
+          layoutShifts.push({ value: parseFloat(entry.value.toFixed(4)), selector });
+        }
+      }
+      emitWebVitals();
+    });
+    clsObserver.observe({ type: "layout-shift", buffered: true });
+  } catch {}
+
+  // 2. Largest Contentful Paint (LCP)
+  try {
+    const lcpObserver = new PerformanceObserver((entryList) => {
+      const entries = entryList.getEntries() as any[];
+      const last = entries[entries.length - 1];
+      if (last) {
+        lcpMs = last.renderTime || last.loadTime || last.startTime;
+        if (last.element) {
+          lcpElement = getCleanSelector(last.element);
+        }
+      }
+      emitWebVitals();
+    });
+    lcpObserver.observe({ type: "largest-contentful-paint", buffered: true });
+  } catch {}
+
+  // 3. First Input Delay / INP
+  try {
+    const fidObserver = new PerformanceObserver((entryList) => {
+      for (const entry of entryList.getEntries() as any[]) {
+        const delay = entry.processingStart - entry.startTime;
+        if (delay > inpMs) inpMs = delay;
+      }
+      emitWebVitals();
+    });
+    fidObserver.observe({ type: "first-input", buffered: true });
+  } catch {}
+
+  if (document.readyState === "complete") {
+    emitWebVitals();
+  } else {
+    window.addEventListener("load", emitWebVitals, { once: true });
+  }
+}
+
+initWebVitalsTracker();
+
 // Listen for commands from sidepanel / background
 if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -522,6 +747,13 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
     if (msg.type === "domray-stop-inspect") {
       stopInspector();
       sendResponse({ active: false });
+      return true;
+    }
+    if (msg.type === "domray-spotlight") {
+      if (msg.selector) {
+        spotlightElement(msg.selector, msg.toolName || "domray");
+      }
+      sendResponse({ ok: true });
       return true;
     }
   });

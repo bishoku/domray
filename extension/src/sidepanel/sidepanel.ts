@@ -84,6 +84,9 @@ const domResultArea = document.getElementById("dom-result-area")!;
 
 const inspectBtn = document.getElementById("inspect-btn")!;
 const capsuleBtn = document.getElementById("capsule-btn")!;
+const bundleBtn = document.getElementById("bundle-btn")!;
+const vitalsChip = document.getElementById("vitals-chip");
+const vitalsChipText = document.getElementById("vitals-chip-text");
 const inspectorCard = document.getElementById("inspector-card")!;
 const inspectCompName = document.getElementById("inspect-comp-name")!;
 const inspectSelector = document.getElementById("inspect-selector")!;
@@ -138,9 +141,29 @@ async function init(): Promise<void> {
   updateDevToolsBanner(detachReason);
   updateAttachButton(detachReason);
 
+  chrome.storage.session.get("domray_web_vitals", (res) => {
+    updateWebVitalsUI(res["domray_web_vitals"]);
+  });
+
   renderAuditLogs();
   renderErrors();
   renderNetwork();
+}
+
+function updateWebVitalsUI(vitals: any): void {
+  if (!vitalsChip || !vitalsChipText) return;
+  if (!vitals) {
+    vitalsChipText.textContent = "CWV: --";
+    vitalsChip.className = "status-chip status-chip--disconnected";
+    return;
+  }
+  const cls = vitals.cls !== undefined ? vitals.cls : 0;
+  const lcp = vitals.lcpMs !== undefined ? `${vitals.lcpMs}ms` : "--";
+  const isGood = vitals.clsRating === "good" && (!vitals.lcpRating || vitals.lcpRating === "good");
+
+  vitalsChipText.textContent = `CLS: ${cls} | LCP: ${lcp}`;
+  vitalsChip.className = isGood ? "status-chip status-chip--connected" : "status-chip status-chip--paused";
+  vitalsChip.title = `Core Web Vitals:\n- CLS: ${cls} (${vitals.clsRating || "unknown"})\n- LCP: ${lcp} (${vitals.lcpRating || "unknown"})\n- INP: ${vitals.inpMs || 0}ms`;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +180,10 @@ chrome.storage.session.onChanged.addListener((changes) => {
   if ("domray_ai_audit_log" in changes) {
     currentAuditLogs = (changes["domray_ai_audit_log"]?.newValue as AiAuditEvent[] | undefined) ?? [];
     renderAuditLogs();
+  }
+
+  if ("domray_web_vitals" in changes) {
+    updateWebVitalsUI(changes["domray_web_vitals"]?.newValue);
   }
 
   if (
@@ -632,6 +659,40 @@ inspectBtn.addEventListener("click", async () => {
     showToast("❌ Could not toggle inspector");
   }
 });
+
+bundleBtn.addEventListener("click", () => {
+  void exportBugBundle();
+});
+
+async function exportBugBundle(): Promise<void> {
+  try {
+    const res = (await chrome.runtime.sendMessage({ type: "get-bundle-data" })) as {
+      ok: boolean;
+      bundle?: Record<string, unknown>;
+    };
+
+    if (!res || !res.ok || !res.bundle) {
+      showToast("❌ Could not generate bug bundle");
+      return;
+    }
+
+    const jsonStr = JSON.stringify(res.bundle, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const dateStr = new Date().toISOString().replace(/[:.]/g, "-");
+    a.href = url;
+    a.download = `domray-session-${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast("📦 Bug Bundle downloaded (.domray.json)");
+  } catch {
+    showToast("❌ Error exporting bundle");
+  }
+}
 
 btnReinspect.addEventListener("click", () => {
   inspectBtn.click();

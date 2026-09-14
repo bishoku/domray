@@ -25,7 +25,14 @@ import {
   type BreadcrumbEntry,
   type ConsoleEntry,
 } from "./ring-buffer.js";
-import { getActiveTabId, queryDom, inspectComponentState, inspectStorage } from "./cdp-client.js";
+import {
+  getActiveTabId,
+  queryDom,
+  inspectComponentState,
+  inspectStorage,
+  inspectA11yTree,
+  inspectQueryCache,
+} from "./cdp-client.js";
 
 // ---------------------------------------------------------------------------
 // State
@@ -263,6 +270,10 @@ export function sendConsole(entry: ConsoleEntry): void {
   send({ type: "console", payload: entry });
 }
 
+export function sendWebVitals(vitals: unknown): void {
+  send({ type: "web-vitals", payload: vitals });
+}
+
 export function sendResetStore(): void {
   send({ type: "reset-store" });
 }
@@ -295,6 +306,19 @@ type IncomingMessage =
       type: "component-state-query";
       requestId: string;
       selector: string;
+    }
+  | {
+      type: "a11y-tree-query";
+      requestId: string;
+      selector?: string;
+      maxDepth?: number;
+      filter?: "all" | "interesting_only";
+    }
+  | {
+      type: "query-cache-query";
+      requestId: string;
+      queryKey?: string;
+      statusFilter?: string;
     }
   | {
       type: "ai-audit-event";
@@ -342,6 +366,30 @@ function handleIncoming(raw: string): void {
           data: JSON.stringify({ error }),
         });
       });
+  } else if (msg.type === "a11y-tree-query") {
+    // Execute W3C Accessibility Tree inspection
+    inspectA11yTree(msg.selector, msg.maxDepth, msg.filter)
+      .then((tree) => {
+        send({ type: "a11y-tree-response", requestId: msg.requestId, tree });
+      })
+      .catch((err: unknown) => {
+        const error = err instanceof Error ? err.message : String(err);
+        send({ type: "a11y-tree-response", requestId: msg.requestId, tree: "", error });
+      });
+  } else if (msg.type === "query-cache-query") {
+    // Execute TanStack / React Query cache inspection
+    inspectQueryCache(msg.queryKey, msg.statusFilter)
+      .then((data) => {
+        send({ type: "query-cache-response", requestId: msg.requestId, data });
+      })
+      .catch((err: unknown) => {
+        const error = err instanceof Error ? err.message : String(err);
+        send({
+          type: "query-cache-response",
+          requestId: msg.requestId,
+          data: JSON.stringify({ error }),
+        });
+      });
   } else if (msg.type === "storage-query") {
     inspectStorage(msg.storageType, msg.key)
       .then((data) => {
@@ -356,7 +404,22 @@ function handleIncoming(raw: string): void {
         });
       });
   } else if (msg.type === "ai-audit-event") {
-    // Record AI audit event to chrome.storage.session for Side Panel
+    // 1. Dispatch In-Page Spotlight if tool acted on a selector
+    const selector = (msg.params?.selector as string | undefined);
+    const activeTabId = getActiveTabId();
+    if (selector && activeTabId !== null) {
+      try {
+        chrome.tabs.sendMessage(activeTabId, {
+          type: "domray-spotlight",
+          selector,
+          toolName: msg.toolName,
+        }).catch(() => {});
+      } catch {
+        // Ignore
+      }
+    }
+
+    // 2. Record AI audit event to chrome.storage.session for Side Panel
     chrome.storage.session.get("domray_ai_audit_log", (res) => {
       const logs = (res["domray_ai_audit_log"] as AiAuditEvent[] | undefined) ?? [];
       logs.push({

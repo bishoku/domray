@@ -13,6 +13,7 @@ import {
   getActiveTabId,
   handleDebuggerDetached,
   inspectComponentState,
+  inspectStorage,
   restoreActiveTabId,
 } from "./cdp-client.js";
 import {
@@ -32,6 +33,7 @@ import {
   disconnectWs,
   getWsStatus,
   sendBreadcrumb,
+  sendWebVitals,
   sendResetStore,
   sendSessionInfo,
 } from "./ws-client.js";
@@ -137,7 +139,16 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
     return true;
   }
 
-  // 4. Popup / Sidepanel command messages
+  // 4. Web Vitals update event from content script
+  if (msg.type === "web-vitals-update") {
+    void chrome.storage.session.set({ domray_web_vitals: msg.payload });
+    sendWebVitals(msg.payload);
+    chrome.runtime.sendMessage(msg).catch(() => {});
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  // 5. Popup / Sidepanel command messages
   void handlePopupMessage(message as PopupMessage, sendResponse);
   return true; // Keep message channel open for async response
 });
@@ -193,7 +204,8 @@ type PopupMessage =
   | { type: "clear-buffers" }
   | { type: "inspect-component"; selector: string }
   | { type: "toggle-inspect" }
-  | { type: "get-capsule-data" };
+  | { type: "get-capsule-data" }
+  | { type: "get-bundle-data" };
 
 async function handlePopupMessage(
   msg: PopupMessage,
@@ -427,6 +439,79 @@ async function handlePopupMessage(
         recentConsole,
         inspectedElement,
       });
+      break;
+    }
+
+    case "get-bundle-data": {
+      const activeTabId = getActiveTabId();
+      let tabTitle = "(unknown)";
+      let tabUrl = "(unknown)";
+
+      if (activeTabId) {
+        try {
+          const tab = await chrome.tabs.get(activeTabId);
+          tabTitle = tab.title || tabTitle;
+          tabUrl = tab.url || tabUrl;
+        } catch {
+          // Tab may be closing
+        }
+      }
+
+      const errors = errorBuffer.toArray();
+      const breadcrumbs = breadcrumbBuffer.toArray();
+      const network = networkBuffer.toArray();
+      const consoleLogs = consoleBuffer.toArray();
+
+      const sessionStore = await chrome.storage.session.get([
+        "domray_inspected_element",
+        "domray_web_vitals",
+      ]);
+
+      let localStorageData: Record<string, string> = {};
+      let sessionStorageData: Record<string, string> = {};
+
+      if (activeTabId) {
+        try {
+          const localRaw = await inspectStorage("local");
+          localStorageData = JSON.parse(localRaw);
+        } catch {
+          // ignore
+        }
+        try {
+          const sessionRaw = await inspectStorage("session");
+          sessionStorageData = JSON.parse(sessionRaw);
+        } catch {
+          // ignore
+        }
+      }
+
+      const bundle = {
+        domrayVersion: "0.1.0",
+        exportedAt: new Date().toISOString(),
+        session: {
+          url: tabUrl,
+          title: tabTitle,
+          tabId: activeTabId,
+        },
+        webVitals: sessionStore["domray_web_vitals"] || null,
+        inspectedElement: sessionStore["domray_inspected_element"] || null,
+        telemetry: {
+          errorsCount: errors.length,
+          errors,
+          breadcrumbsCount: breadcrumbs.length,
+          breadcrumbs,
+          networkCount: network.length,
+          network,
+          consoleCount: consoleLogs.length,
+          consoleLogs,
+        },
+        storage: {
+          localStorage: localStorageData,
+          sessionStorage: sessionStorageData,
+        },
+      };
+
+      sendResponse({ ok: true, bundle });
       break;
     }
   }

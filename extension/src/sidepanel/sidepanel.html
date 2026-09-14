@@ -19,13 +19,14 @@
     <div class="header__actions">
       <button id="inspect-btn" class="icon-btn" title="Inspect Element on Page">🎯</button>
       <button id="capsule-btn" class="icon-btn" title="Copy 1-Click AI Context Capsule (Markdown)">📋</button>
+      <button id="bundle-btn" class="icon-btn" title="Export 1-Click Bug Bundle (.domray.json)">📦</button>
       <button id="clear-btn" class="icon-btn" title="Clear Buffers">🧹</button>
       <button id="snapshot-btn" class="icon-btn" title="Take DOM Snapshot">📸</button>
       <button id="attach-btn" class="btn btn--sm btn--primary">Attach</button>
     </div>
   </header>
 
-  <!-- Dual Status Bar: MCP Server + Tab Tracing -->
+  <!-- Dual Status Bar: MCP Server + Tab Tracing + Web Vitals -->
   <div class="system-status-bar">
     <div id="mcp-status-chip" class="status-chip status-chip--disconnected">
       <span class="status-chip__dot"></span>
@@ -34,6 +35,10 @@
     <div id="tracing-status-chip" class="status-chip status-chip--inactive">
       <span class="status-chip__dot"></span>
       <span id="tracing-chip-text" class="status-chip__text">Tracing: Inactive</span>
+    </div>
+    <div id="vitals-chip" class="status-chip status-chip--disconnected" title="Core Web Vitals">
+      <span class="status-chip__dot"></span>
+      <span id="vitals-chip-text" class="status-chip__text">CWV: Good</span>
     </div>
   </div>
 

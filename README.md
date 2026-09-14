@@ -80,9 +80,13 @@ Using the **Chrome DevTools Protocol (CDP)** and the open **Model Context Protoc
 * 🔍 **Zero-Friction Context:** Your AI can inspect runtime exceptions, network request histories, and client storage on demand.
 * 🖱️ **Causal Flow Reconstruction:** Replays the exact sequence of clicks, form entries, and SPA navigations that triggered an issue.
 * ⚛️ **Framework State X-Ray:** Traverses React 18/19 Fiber trees (hooks unrolled into `useState`, `useReducer`, props) and Vue 3 reactive `ref()` / `computed()` components.
+* ⚡ **TanStack / React Query Cache Inspector (`domray_get_query_cache`):** Deep inspection into async query cache, fetch statuses, stale data, and cache data previews.
+* ♿ **Accessibility (AXTree) Semantic Tree Mode (`domray_get_a11y_tree`):** Inspects W3C Accessibility tree, giving AI agents token-efficient semantic hierarchy without HTML noise.
+* 📊 **Web Vitals & Layout Shift Telemetry (`domray_get_web_vitals`):** Real-time Core Web Vitals (CLS, LCP, INP) + layout shift culprit attribution mapping shifts directly to DOM selectors.
+* 🤖 **AI Ghost Pointer & In-Page Spotlight:** Visually flashes an in-page glowing spotlight and floating badge whenever the AI inspects a DOM element.
 * 🎬 **Instant E2E Test Blueprints (`domray_get_test_blueprint`):** Converts recorded user actions and network events directly into runnable, resilient **Playwright** or **Cypress** test specs.
 * 🌐 **Auto MSW Mock Handlers (`domray_get_mock_handlers`):** Automatically synthesizes Mock Service Worker v2 handlers from real failed HTTP 4xx/5xx network transactions.
-* 📋 **1-Click AI Context Capsule:** Copies an edge-redacted, Markdown-formatted diagnostic report to your clipboard for instant pasting into web ChatGPT, Claude, or GitHub Issues.
+* 📦 **1-Click Bug Bundle (.json Export) & AI Capsule:** Export complete edge-redacted `.domray.json` diagnostics or copy Markdown reports directly from the Side Panel.
 
 ---
 
@@ -125,7 +129,7 @@ DOMRay is built as a lightweight, local-first monorepo designed for performance 
        │
        ▼
 [AI Coding Agent (Cursor / Claude Code / Antigravity / Windsurf)]
-  └── Standard MCP Tools (10 specialized tools)
+  └── Standard MCP Tools (13 specialized tools)
 ```
 
 ### Technologies Used:
@@ -220,9 +224,9 @@ Add DOMRay to your AI agent's MCP configuration:
 
 ---
 
-## 🧰 MCP Tools Reference (10 Tools)
+## 🧰 MCP Tools Reference (13 Tools)
 
-DOMRay exposes 10 tools to connected AI coding agents:
+DOMRay exposes 13 tools to connected AI coding agents:
 
 | Tool | Description | Key Parameters |
 | :--- | :--- | :--- |
@@ -233,6 +237,9 @@ DOMRay exposes 10 tools to connected AI coding agents:
 | `domray_get_mock_handlers` | 🌐 **Synthesizes MSW v2 mock request handlers** directly from recorded 4xx/5xx API transactions. | `format: "msw" \| "fetch-mock"`, `filter: "failed_only" \| "all"` |
 | `domray_get_component_state` | Traverses React 18/19 Fiber or Vue 3 reactive trees to extract props and hooks (`useState`, etc.). | `selector: string` (e.g. `'#root'`, `'form#checkout'`) |
 | `domray_get_scoped_dom` | Returns an intelligent, token-pruned (-85% tokens) HTML subtree for a given CSS selector. | `selector: string`, `max_depth: number` |
+| `domray_get_a11y_tree` | ♿ Returns Chrome's W3C Accessibility Tree (AXTree) with pruned generic containers for token efficiency. | `selector?: string`, `max_depth: number`, `filter: "all" \| "interesting_only"` |
+| `domray_get_query_cache` | ⚡ Inspects TanStack / React Query cache (query keys, status, stale states, data preview). | `query_key?: string`, `status: "all" \| "idle" \| "pending" \| "success" \| "error"` |
+| `domray_get_web_vitals` | 📊 Returns live Core Web Vitals (CLS, LCP, INP) + layout shift culprit attribution (offending selectors). | `include_shifts: boolean` |
 | `domray_get_network_timeline` | Returns recent HTTP transactions (status, duration, method, response bodies for errors). | `failed_only: boolean`, `limit: number` |
 | `domray_get_console_logs` | Returns live browser console logs (`log`, `info`, `warn`, `error`) captured via CDP. | `level: "all" \| "error" \| "warn"`, `search?: string` |
 | `domray_get_storage_state` | Reads `localStorage`, `sessionStorage`, or cookies with automatic secret masking. | `storage_type: "local" \| "session" \| "cookies"` |

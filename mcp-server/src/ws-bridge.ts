@@ -41,6 +41,9 @@ type ExtensionMessage =
   | { type: "dom-response"; requestId: string; html: string; error?: string }
   | { type: "component-state-response"; requestId: string; data: string; error?: string }
   | { type: "storage-response"; requestId: string; data: string; error?: string }
+  | { type: "a11y-tree-response"; requestId: string; tree: string; error?: string }
+  | { type: "query-cache-response"; requestId: string; data: string; error?: string }
+  | { type: "web-vitals"; payload: Record<string, unknown> }
   | { type: "heartbeat" };
 
 // ---------------------------------------------------------------------------
@@ -105,6 +108,86 @@ export function queryStorage(
       clearTimeout(timer);
       store.storageQueryCallbacks.delete(requestId);
       reject(new Error("Failed to dispatch storage query over WebSocket"));
+    }
+  });
+}
+
+export function sendA11yTreeQuery(
+  requestId: string,
+  selector?: string,
+  maxDepth?: number,
+  filter?: "all" | "interesting_only",
+): boolean {
+  if (!activeClient || activeClient.readyState !== WebSocket.OPEN) return false;
+  activeClient.send(
+    JSON.stringify({ type: "a11y-tree-query", requestId, selector, maxDepth, filter }),
+  );
+  return true;
+}
+
+export function queryA11yTree(
+  selector?: string,
+  maxDepth?: number,
+  filter?: "all" | "interesting_only",
+  timeoutMs = 8000,
+): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    if (!isExtensionConnected()) {
+      return reject(new Error("No active DOMRay extension connection. Attach debugger in Chrome first."));
+    }
+
+    const requestId = crypto.randomUUID();
+    const timer = setTimeout(() => {
+      store.a11yTreeCallbacks.delete(requestId);
+      reject(new Error(`Accessibility tree query timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    store.a11yTreeCallbacks.set(requestId, { resolve, reject, timer });
+
+    const sent = sendA11yTreeQuery(requestId, selector, maxDepth, filter);
+    if (!sent) {
+      clearTimeout(timer);
+      store.a11yTreeCallbacks.delete(requestId);
+      reject(new Error("Failed to dispatch accessibility tree query over WebSocket"));
+    }
+  });
+}
+
+export function sendQueryCacheQuery(
+  requestId: string,
+  queryKey?: string,
+  statusFilter?: string,
+): boolean {
+  if (!activeClient || activeClient.readyState !== WebSocket.OPEN) return false;
+  activeClient.send(
+    JSON.stringify({ type: "query-cache-query", requestId, queryKey, statusFilter }),
+  );
+  return true;
+}
+
+export function queryQueryCache(
+  queryKey?: string,
+  statusFilter?: string,
+  timeoutMs = 6000,
+): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    if (!isExtensionConnected()) {
+      return reject(new Error("No active DOMRay extension connection. Attach debugger in Chrome first."));
+    }
+
+    const requestId = crypto.randomUUID();
+    const timer = setTimeout(() => {
+      store.queryCacheCallbacks.delete(requestId);
+      reject(new Error(`Query cache query timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    store.queryCacheCallbacks.set(requestId, { resolve, reject, timer });
+
+    const sent = sendQueryCacheQuery(requestId, queryKey, statusFilter);
+    if (!sent) {
+      clearTimeout(timer);
+      store.queryCacheCallbacks.delete(requestId);
+      reject(new Error("Failed to dispatch query cache query over WebSocket"));
     }
   });
 }
@@ -357,6 +440,38 @@ export function startWsBridge(sessionToken: string, extensionId: string): void {
           }
           break;
         }
+
+        case "a11y-tree-response": {
+          const cb = store.a11yTreeCallbacks.get(msg.requestId);
+          if (cb) {
+            clearTimeout(cb.timer);
+            store.a11yTreeCallbacks.delete(msg.requestId);
+            if (msg.error) {
+              cb.reject(new Error(msg.error));
+            } else {
+              cb.resolve(msg.tree);
+            }
+          }
+          break;
+        }
+
+        case "query-cache-response": {
+          const cb = store.queryCacheCallbacks.get(msg.requestId);
+          if (cb) {
+            clearTimeout(cb.timer);
+            store.queryCacheCallbacks.delete(msg.requestId);
+            if (msg.error) {
+              cb.reject(new Error(msg.error));
+            } else {
+              cb.resolve(msg.data);
+            }
+          }
+          break;
+        }
+
+        case "web-vitals":
+          store.latestWebVitals = msg.payload;
+          break;
 
         case "heartbeat":
           // Keep-alive; no-op
