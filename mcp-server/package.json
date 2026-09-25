@@ -1,12 +1,12 @@
 {
-  "name": "@domray/mcp-server",
+  "name": "domray",
   "version": "0.1.0",
   "description": "DOMRay MCP Server — browser runtime telemetry over stdio",
   "license": "MIT",
   "author": "DOMRay Contributors",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bishoku/domray",
+    "url": "git+https://github.com/bishoku/domray.git",
     "directory": "mcp-server"
   },
   "keywords": [
@@ -14,17 +14,27 @@
     "model-context-protocol",
     "devtools",
     "ai-agent",
-    "browser-telemetry"
+    "browser-telemetry",
+    "chrome-extension"
   ],
   "type": "module",
   "bin": {
-    "domray-server": "./dist/index.js"
+    "domray": "dist/index.js",
+    "domray-server": "dist/index.js",
+    "domray-mcp": "dist/index.js"
   },
   "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
+    "prepack": "npm run build",
     "clean": "rm -rf dist"
   },
   "dependencies": {

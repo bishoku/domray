@@ -191,19 +191,33 @@ npm run build
 
 Add DOMRay to your AI agent's MCP configuration:
 
-#### For Cursor (`~/.cursor/mcp.json` or Cursor Settings > Features > MCP):
+#### Option A: Zero-Install via `npx` (Recommended)
+
+##### For Cursor (`~/.cursor/mcp.json` or Settings > MCP):
 ```json
 {
   "mcpServers": {
     "domray": {
-      "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/domray/mcp-server/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "domray"]
     }
   }
 }
 ```
 
-#### For Claude Code (`claude_desktop_config.json` or project config):
+##### For Claude Code (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "domray": {
+      "command": "npx",
+      "args": ["-y", "domray"]
+    }
+  }
+}
+```
+
+#### Option B: Local Source Build (For Contributors)
 ```json
 {
   "mcpServers": {

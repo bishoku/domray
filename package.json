@@ -1,5 +1,5 @@
 {
-  "name": "domray",
+  "name": "domray-monorepo",
   "version": "0.1.0",
   "description": "Browser runtime telemetry bridge for AI coding agents via Model Context Protocol (MCP)",
   "license": "MIT",
