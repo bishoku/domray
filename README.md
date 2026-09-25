@@ -199,7 +199,7 @@ Add DOMRay to your AI agent's MCP configuration:
   "mcpServers": {
     "domray": {
       "command": "npx",
-      "args": ["-y", "domray"]
+      "args": ["-y", "@bishoku/domray"]
     }
   }
 }
@@ -211,7 +211,7 @@ Add DOMRay to your AI agent's MCP configuration:
   "mcpServers": {
     "domray": {
       "command": "npx",
-      "args": ["-y", "domray"]
+      "args": ["-y", "@bishoku/domray"]
     }
   }
 }

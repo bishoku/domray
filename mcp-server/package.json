@@ -1,5 +1,5 @@
 {
-  "name": "domray",
+  "name": "@bishoku/domray",
   "version": "0.1.0",
   "description": "DOMRay MCP Server — browser runtime telemetry over stdio",
   "license": "MIT",
